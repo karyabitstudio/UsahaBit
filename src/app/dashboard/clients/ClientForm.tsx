@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ClientFormProps {
+  workspaceId: string;
   initialData?: {
     id: string;
     name: string;
@@ -19,7 +20,7 @@ interface ClientFormProps {
   };
 }
 
-export function ClientForm({ initialData }: ClientFormProps) {
+export function ClientForm({ initialData, workspaceId }: ClientFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const isEdit = !!initialData;
@@ -48,7 +49,7 @@ export function ClientForm({ initialData }: ClientFormProps) {
       phone: phone || null,
       address: address || null,
       notes: notes || null,
-      user_id: user.id,
+      user_id: workspaceId,
     };
 
     let result;
@@ -57,7 +58,7 @@ export function ClientForm({ initialData }: ClientFormProps) {
         .from("clients")
         .update(payload)
         .eq("id", initialData.id)
-        .eq("user_id", user.id);
+        .eq("user_id", workspaceId);
     } else {
       result = await supabase.from("clients").insert(payload);
     }

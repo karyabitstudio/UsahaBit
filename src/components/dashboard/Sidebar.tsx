@@ -10,6 +10,9 @@ import {
   Package,
   Settings,
   LogOut,
+  ChartNoAxesCombined,
+  UsersRound,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -22,17 +25,24 @@ const menuItems = [
   { href: "/dashboard/clients", label: "Client", icon: Users },
   { href: "/dashboard/documents", label: "Surat Resmi", icon: File },
   { href: "/dashboard/products", label: "Produk", icon: Package },
+  { href: "/dashboard/reports", label: "Laporan", icon: ChartNoAxesCombined, businessOnly: true },
+  { href: "/dashboard/team", label: "Anggota Tim", icon: UsersRound, businessOnly: true },
+  { href: "/dashboard/support", label: "Support", icon: LifeBuoy },
   { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
 
 interface SidebarProps {
   profile: any;
+  isAdmin?: boolean;
 }
 
-export function Sidebar({ profile }: SidebarProps) {
+export function Sidebar({ profile, isAdmin = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const visibleMenuItems = menuItems.filter(
+    (item) => !("businessOnly" in item) || isAdmin || profile?.plan === "business",
+  );
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -53,7 +63,7 @@ export function Sidebar({ profile }: SidebarProps) {
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href ||
@@ -99,7 +109,7 @@ export function Sidebar({ profile }: SidebarProps) {
         </Button>
       </div>
       <nav aria-label="Navigasi dashboard" className="flex gap-1 overflow-x-auto px-3 pb-2">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (

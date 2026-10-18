@@ -1,38 +1,24 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdminEmail } from "@/lib/admin-auth";
+import { getEffectivePlan, getPlanLimits } from "@/lib/plan";
+import { resolveWorkspaceOwnerId } from "@/lib/workspace";
+import { ProductsWorkspace } from "@/components/products/ProductsWorkspace";
 import { buttonVariants } from "@/components/ui/button";
-import { Package } from "lucide-react";
 
-export default function ProductsPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Produk</h1>
-        <p className="text-muted-foreground">
-          Kelola katalog produk untuk mempercepat pembuatan invoice
-        </p>
-      </div>
+export default async function ProductsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const ownerId = await resolveWorkspaceOwnerId(supabase, user.id);
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("plan, plan_expires_at").eq("id", ownerId).maybeSingle();
+  const plan = isAdminEmail(user.email) ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);
 
-      <div className="rounded-xl border bg-card p-10 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Package className="h-7 w-7" />
-        </div>
-        <h2 className="text-lg font-semibold">Katalog Produk</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Fitur katalog produk akan segera hadir. Kamu tetap bisa menuliskan item
-          secara manual saat membuat invoice.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link href="/dashboard/invoices/new" className={buttonVariants()}>
-            Buat Invoice
-          </Link>
-          <Link
-            href="/dashboard/clients"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Kelola Client
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  if (!getPlanLimits(plan).allowCatalog) {
+    return <div className="mx-auto max-w-xl rounded-2xl border bg-card p-8 text-center"><h1 className="text-xl font-bold">Katalog Produk</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">Simpan produk dan jasa agar bisa dimasukkan dengan cepat ke invoice. Fitur ini tersedia di paket Pro dan Business.</p><Link href="/pricing" className={buttonVariants({ className: "mt-5" })}>Lihat paket</Link></div>;
+  }
+
+  return <ProductsWorkspace />;
 }

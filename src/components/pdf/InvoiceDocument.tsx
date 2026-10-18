@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
+import { isPlanActive } from "@/lib/plan";
 
 interface InvoiceDocumentProps {
   invoice: any;
@@ -20,7 +21,14 @@ export function InvoiceDocument({
   client,
   items,
 }: InvoiceDocumentProps) {
-  const brandColor = profile?.brand_color || "#2563eb";
+  const hasPaidPlan =
+    (profile?.plan === "pro" || profile?.plan === "business") &&
+    isPlanActive(profile?.plan_expires_at);
+  const brandColor = hasPaidPlan ? profile?.brand_color || "#2563eb" : "#2563eb";
+  const template = hasPaidPlan && ["classic", "modern", "minimal"].includes(invoice?.template)
+    ? invoice.template
+    : "classic";
+  const hasNoWatermark = hasPaidPlan;
 
   const styles = StyleSheet.create({
     page: {
@@ -33,6 +41,11 @@ export function InvoiceDocument({
       justifyContent: "space-between",
       marginBottom: 30,
       alignItems: "flex-start",
+      backgroundColor: template === "modern" ? brandColor : "#ffffff",
+      padding: template === "modern" ? 18 : 0,
+      borderBottomWidth: template === "minimal" ? 1 : 0,
+      borderBottomColor: brandColor,
+      paddingBottom: template === "minimal" ? 14 : template === "modern" ? 18 : 0,
     },
     logo: {
       width: 70,
@@ -43,22 +56,22 @@ export function InvoiceDocument({
     businessName: {
       fontSize: 18,
       fontWeight: "bold",
-      color: brandColor,
+      color: template === "modern" ? "#ffffff" : brandColor,
     },
     subtitle: {
       fontSize: 10,
-      color: "#6b7280",
+      color: template === "modern" ? "#eff6ff" : "#6b7280",
       marginTop: 2,
     },
     invoiceTitle: {
-      fontSize: 22,
       fontWeight: "bold",
-      color: brandColor,
+      color: template === "modern" ? "#ffffff" : template === "minimal" ? "#111827" : brandColor,
       textAlign: "right",
+      fontSize: template === "minimal" ? 26 : 22,
     },
     invoiceNumber: {
       fontSize: 11,
-      color: "#6b7280",
+      color: template === "modern" ? "#eff6ff" : "#6b7280",
       textAlign: "right",
       marginTop: 4,
     },
@@ -79,12 +92,14 @@ export function InvoiceDocument({
     },
     tableHeader: {
       flexDirection: "row",
-      backgroundColor: brandColor,
+      backgroundColor: template === "minimal" ? "#ffffff" : brandColor,
       paddingVertical: 8,
       paddingHorizontal: 6,
+      borderBottomWidth: template === "minimal" ? 1 : 0,
+      borderBottomColor: brandColor,
     },
     tableHeaderText: {
-      color: "#ffffff",
+      color: template === "minimal" ? brandColor : "#ffffff",
       fontSize: 10,
       fontWeight: "bold",
     },
@@ -137,6 +152,16 @@ export function InvoiceDocument({
       fontSize: 9,
       color: "#9ca3af",
     },
+    watermark: {
+      position: "absolute",
+      top: 350,
+      left: 85,
+      transform: "rotate(-35deg)",
+      fontSize: 52,
+      fontWeight: "bold",
+      color: "#e5e7eb",
+      opacity: 0.55,
+    },
   });
 
   const formatCurrency = (value: number) =>
@@ -149,10 +174,11 @@ export function InvoiceDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {!hasNoWatermark && <Text style={styles.watermark}>USAHA BIT</Text>}
         {/* Header */}
         <View style={styles.header}>
           <View>
-            {profile?.logo_url ? (
+            {hasPaidPlan && profile?.logo_url ? (
               <Image src={profile.logo_url} style={styles.logo} />
             ) : null}
             <Text style={styles.businessName}>
@@ -260,7 +286,9 @@ export function InvoiceDocument({
 
         {/* Footer */}
         <Text style={styles.footer}>
-          Terima kasih atas kepercayaan Anda • Dibuat dengan UsahaBit
+          {hasNoWatermark
+            ? "Terima kasih atas kepercayaan Anda"
+            : "Terima kasih • Dibuat dengan UsahaBit"}
         </Text>
       </Page>
     </Document>

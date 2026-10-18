@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
+import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -220,6 +221,9 @@ export default function RegisterPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Mendaftar..." : "Daftar Sekarang"}
             </Button>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />atau<span className="h-px flex-1 bg-border" /></div>
+            <GoogleAuthButton mode="register" />
 
             <p className="text-sm text-center text-muted-foreground">
               Sudah punya akun?{" "}

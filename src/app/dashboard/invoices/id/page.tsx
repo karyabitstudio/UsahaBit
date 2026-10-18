@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { DownloadPdfButton } from "@/components/invoices/DownloadPdfButton";
 import { SendWhatsAppButton } from "@/components/invoices/SendWhatsAppButton";
+import { isAdminEmail } from "@/lib/admin-auth";
+import { resolveWorkspaceOwnerId, getWorkspaceProfile } from "@/lib/workspace";
 
 const statusMap: Record<
   string,
@@ -34,6 +36,7 @@ export default async function InvoiceDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
 
   const { data: invoice } = await supabase
     .from("invoices")
@@ -45,16 +48,15 @@ export default async function InvoiceDetailPage({
     `,
     )
     .eq("id", id)
-    .eq("user_id", user!.id)
+    .eq("user_id", workspaceId)
     .single();
 
   if (!invoice) notFound();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
+  const profile = await getWorkspaceProfile(workspaceId);
+  const displayProfile = isAdminEmail(user?.email)
+    ? { ...profile, plan: "business", plan_expires_at: "9999-12-31T23:59:59.999Z" }
+    : profile;
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -99,14 +101,14 @@ export default async function InvoiceDetailPage({
           </Link>
           <DownloadPdfButton
             invoice={invoice}
-            profile={profile}
+            profile={displayProfile}
             client={invoice.clients}
             items={invoice.invoice_items || []}
           />
           <SendWhatsAppButton
             invoice={invoice}
             client={invoice.clients}
-            profile={profile}
+            profile={displayProfile}
           />
         </div>
       </div>

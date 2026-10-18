@@ -1,30 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SiteFooter } from "@/components/SiteFooter";
+import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/site-settings";
 
 const plans = [
   {
     name: "Free",
-    price: { monthly: 0, yearly: 0 },
+    key: "free",
     description: "Cocok untuk mulai mencoba",
     features: [
-      "5 Invoice per bulan",
+      "3 Invoice per bulan",
+      "3 penggunaan demo per layanan per bulan",
       "3 Template surat dasar",
       "10 Client",
       "Watermark di PDF",
-      "Support email",
+      "Support melalui tiket",
     ],
-    cta: "Mulai Gratis",
-    href: "/register",
     popular: false,
   },
   {
     name: "Pro",
-    price: { monthly: 79000, yearly: 699000 },
+    key: "pro",
     description: "Paling banyak dipilih UMKM",
     features: [
       "Unlimited Invoice & Surat",
@@ -33,31 +35,36 @@ const plans = [
       "Tanpa Watermark",
       "Katalog Produk",
       "Kirim via WhatsApp",
-      "Priority Support",
+      "Prioritas penanganan support",
     ],
-    cta: "Upgrade ke Pro",
-    href: "/register?plan=pro",
     popular: true,
   },
   {
     name: "Business",
-    price: { monthly: 149000, yearly: 1299000 },
+    key: "business",
     description: "Untuk tim & bisnis berkembang",
     features: [
       "Semua fitur Pro",
       "Multi user (sampai 5 orang)",
-      "Custom Domain (opsional)",
       "Laporan & Export Data",
-      "Dedicated Support",
+      "Antrean support Business",
     ],
-    cta: "Pilih Business",
-    href: "/register?plan=business",
     popular: false,
   },
 ];
 
 export default function PricingPage() {
+  const router = useRouter();
   const [isYearly, setIsYearly] = useState(true);
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+
+  useEffect(() => {
+    fetch("/api/site-settings", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings) => { if (settings) setSiteSettings(settings); })
+      .catch(() => undefined);
+  }, []);
 
   const formatPrice = (price: number) => {
     if (price === 0) return "Rp 0";
@@ -68,9 +75,38 @@ export default function PricingPage() {
     }).format(price);
   };
 
+  const choosePlan = (plan: (typeof plans)[number]) => {
+    if (plan.key === "free") {
+      router.push("/coba/layanan");
+      return;
+    }
+
+    let phone = siteSettings.salesWhatsapp.replace(/\D/g, "");
+    if (phone.startsWith("0")) phone = `62${phone.slice(1)}`;
+    else if (phone.startsWith("8")) phone = `62${phone}`;
+    if (!phone) {
+      setContactError("Nomor WhatsApp tujuan belum diatur. Isi NEXT_PUBLIC_SALES_WHATSAPP di .env.local.");
+      return;
+    }
+    setContactError(null);
+    const period = isYearly ? "Tahunan (1 tahun)" : "Bulanan (1 bulan)";
+    const price = formatPrice(getPlanPrice(plan.key, siteSettings, isYearly));
+    const message = [
+      "Halo UsahaBit, saya ingin membeli paket.",
+      "",
+      `Paket: ${plan.name}`,
+      `Periode: ${period}`,
+      `Harga: ${price}`,
+      "",
+      "Mohon info cara pembayarannya. Terima kasih.",
+    ].join("\n");
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="min-h-screen bg-background px-4 py-10 sm:py-16">
       <div className="max-w-6xl mx-auto">
+        <Link href="/" className="mb-8 inline-flex text-sm text-muted-foreground transition hover:text-foreground">← Kembali ke beranda</Link>
         <div className="text-center mb-12">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
             Pilih Paket yang Cocok untuk Bisnismu
@@ -115,14 +151,6 @@ export default function PricingPage() {
               )}
               style={{ animationDelay: `${index * 120}ms` }}
             >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
-                    Paling Populer
-                  </span>
-                </div>
-              )}
-
               <div className="mb-6">
                 <h3 className="text-xl font-semibold">{plan.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -130,11 +158,9 @@ export default function PricingPage() {
                 </p>
                 <div className="mt-4">
                   <span className="text-3xl font-bold sm:text-4xl">
-                    {formatPrice(
-                      isYearly ? plan.price.yearly : plan.price.monthly,
-                    )}
+                    {formatPrice(getPlanPrice(plan.key, siteSettings, isYearly))}
                   </span>
-                  {plan.price.monthly > 0 && (
+                  {plan.key !== "free" && (
                     <span className="text-muted-foreground text-sm">
                       /{isYearly ? "tahun" : "bulan"}
                     </span>
@@ -151,20 +177,29 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                href={plan.href}
+              <button
+                type="button"
+                onClick={() => choosePlan(plan)}
                 className={buttonVariants({
                   className: "w-full",
                   variant: plan.popular ? "default" : "outline",
                   size: "lg",
                 })}
               >
-                {plan.cta}
-              </Link>
+                {plan.key === "free" ? "Coba Gratis" : "Pilih Paket via WhatsApp"}
+              </button>
             </div>
           ))}
         </div>
+        {contactError && <p role="alert" className="mt-6 text-center text-sm text-destructive">{contactError}</p>}
       </div>
+      <SiteFooter />
     </div>
   );
+}
+
+function getPlanPrice(planKey: string, settings: SiteSettings, yearly: boolean) {
+  if (planKey === "pro") return yearly ? settings.pricing.proYearly : settings.pricing.proMonthly;
+  if (planKey === "business") return yearly ? settings.pricing.businessYearly : settings.pricing.businessMonthly;
+  return 0;
 }

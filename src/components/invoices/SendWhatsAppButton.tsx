@@ -3,6 +3,7 @@
 import { Button, buttonVariants } from "@/components/ui/button";
 import { MessageCircle, Lock } from "lucide-react";
 import Link from "next/link";
+import { isPlanActive } from "@/lib/plan";
 
 interface Props {
   invoice: any;
@@ -12,7 +13,9 @@ interface Props {
 
 export function SendWhatsAppButton({ invoice, client, profile }: Props) {
   const plan = profile?.plan || "free";
-  const isAllowed = plan === "pro" || plan === "business";
+  const isAllowed =
+    (plan === "pro" || plan === "business") &&
+    isPlanActive(profile?.plan_expires_at);
 
   const handleSend = () => {
     const amount = new Intl.NumberFormat("id-ID", {

@@ -1,8 +1,16 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { File } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "@/lib/admin-auth";
+import { getEffectivePlan } from "@/lib/plan";
+import { DocumentsWorkspace } from "@/components/documents/DocumentsWorkspace";
+import { getWorkspaceProfile, resolveWorkspaceOwnerId } from "@/lib/workspace";
 
-export default function DocumentsPage() {
+export default async function DocumentsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
+  const profile = await getWorkspaceProfile(workspaceId);
+  const canUseAllTemplates = isAdminEmail(user?.email) || getEffectivePlan(profile?.plan, profile?.plan_expires_at || null) !== "free";
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,27 +20,7 @@ export default function DocumentsPage() {
         </p>
       </div>
 
-      <div className="rounded-xl border bg-card p-10 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <File className="h-7 w-7" />
-        </div>
-        <h2 className="text-lg font-semibold">Fitur Surat Resmi</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Template surat resmi sedang disiapkan. Sementara kamu bisa fokus memakai
-          Invoice & Client terlebih dahulu.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link href="/dashboard/invoices/new" className={buttonVariants()}>
-            Buat Invoice dulu
-          </Link>
-          <Link
-            href="/dashboard"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            Kembali ke Dashboard
-          </Link>
-        </div>
-      </div>
+      <DocumentsWorkspace profile={profile} canUseAllTemplates={canUseAllTemplates} />
     </div>
   );
 }

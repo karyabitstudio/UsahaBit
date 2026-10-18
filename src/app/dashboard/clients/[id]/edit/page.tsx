@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ClientForm } from "../../ClientForm";
+import { resolveWorkspaceOwnerId } from "@/lib/workspace";
 
 export default async function EditClientPage({
   params,
@@ -12,12 +13,13 @@ export default async function EditClientPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
 
   const { data: client } = await supabase
     .from("clients")
     .select("*")
     .eq("id", id)
-    .eq("user_id", user!.id)
+    .eq("user_id", workspaceId)
     .single();
 
   if (!client) notFound();
@@ -28,7 +30,7 @@ export default async function EditClientPage({
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Edit Client</h1>
         <p className="text-muted-foreground">Perbarui data client</p>
       </div>
-      <ClientForm initialData={client} />
+      <ClientForm initialData={client} workspaceId={workspaceId} />
     </div>
   );
 }

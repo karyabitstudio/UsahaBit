@@ -25,9 +25,12 @@ interface InvoiceItem {
 interface InvoiceFormProps {
   initialData?: any;
   clients: { id: string; name: string }[];
+  workspaceId: string;
+  products?: { id: string; name: string; description: string; price: number }[];
+  canUseAllTemplates?: boolean;
 }
 
-export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
+export function InvoiceForm({ initialData, clients, workspaceId, products = [], canUseAllTemplates = false }: InvoiceFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const isEdit = !!initialData;
@@ -39,6 +42,8 @@ export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
   const [dueDate, setDueDate] = useState(initialData?.due_date || "");
   const [status, setStatus] = useState(initialData?.status || "draft");
   const [notes, setNotes] = useState(initialData?.notes || "");
+  const [template, setTemplate] = useState(initialData?.template || "classic");
+  const [catalogProductId, setCatalogProductId] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>(
     initialData?.invoice_items?.length
       ? initialData.invoice_items.map((i: any) => ({
@@ -96,19 +101,30 @@ export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setError("Sesi login berakhir. Silakan masuk kembali.");
+      setLoading(false);
+      return;
+    }
 
     try {
       let invoiceId = initialData?.id;
       let invoiceNumber = initialData?.invoice_number;
 
       if (!isEdit) {
-        invoiceNumber = await generateInvoiceNumber(user.id);
+        const limitResponse = await fetch("/api/check-invoice-limit", { cache: "no-store" });
+        if (!limitResponse.ok) throw new Error("Gagal memeriksa batas invoice. Coba lagi.");
+        const limit = await limitResponse.json();
+        if (!limit.allowed) {
+          throw new Error("Batas invoice gratis bulan ini sudah habis. Pilih paket untuk melanjutkan.");
+        }
+
+        invoiceNumber = await generateInvoiceNumber(workspaceId);
 
         const { data: newInvoice, error: invError } = await supabase
           .from("invoices")
           .insert({
-            user_id: user.id,
+            user_id: workspaceId,
             client_id: clientId || null,
             invoice_number: invoiceNumber,
             issue_date: issueDate,
@@ -118,6 +134,7 @@ export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
             tax,
             total,
             notes: notes || null,
+            template: canUseAllTemplates ? template : "classic",
           })
           .select()
           .single();
@@ -136,9 +153,10 @@ export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
             tax,
             total,
             notes: notes || null,
+            template: canUseAllTemplates ? template : "classic",
           })
           .eq("id", invoiceId)
-          .eq("user_id", user.id);
+          .eq("user_id", workspaceId);
 
         if (updateError) throw updateError;
 
@@ -238,6 +256,7 @@ export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
       </div>
 
       {/* Items */}
+      {products.length > 0 && <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4 sm:flex-row sm:items-end"><div className="flex-1 space-y-2"><Label htmlFor="catalogProduct">Tambah dari katalog</Label><Select value={catalogProductId} onValueChange={setCatalogProductId}><SelectTrigger id="catalogProduct"><SelectValue placeholder="Pilih produk atau jasa" /></SelectTrigger><SelectContent>{products.map((product) => <SelectItem key={product.id} value={product.id}>{product.name} · Rp {new Intl.NumberFormat("id-ID").format(Number(product.price))}</SelectItem>)}</SelectContent></Select></div><Button type="button" variant="outline" disabled={!catalogProductId} onClick={() => { const product = products.find((item) => item.id === catalogProductId); if (product) { setItems((current) => [...current, { description: product.name, quantity: 1, unit_price: Number(product.price) }]); setCatalogProductId(""); } }}><Plus className="mr-2 h-4 w-4" />Tambah item</Button></div>}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-base">Item / Jasa</Label>
@@ -308,6 +327,18 @@ export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
       </div>
 
       {/* Total & Notes */}
+      <div className="space-y-2">
+        <Label htmlFor="invoiceTemplate">Template invoice</Label>
+        <Select value={canUseAllTemplates ? template : "classic"} onValueChange={setTemplate} disabled={!canUseAllTemplates}>
+          <SelectTrigger id="invoiceTemplate"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="classic">Classic</SelectItem>
+            {canUseAllTemplates && <><SelectItem value="modern">Modern</SelectItem><SelectItem value="minimal">Minimal</SelectItem></>}
+          </SelectContent>
+        </Select>
+        {!canUseAllTemplates && <p className="text-xs text-muted-foreground">Template Modern dan Minimal tersedia di Pro dan Business. <a href="/pricing" className="font-semibold text-primary hover:underline">Lihat paket</a></p>}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label>Catatan</Label>

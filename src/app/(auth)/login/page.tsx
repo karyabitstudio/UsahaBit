@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/BrandLogo";
+import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,19 +28,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("error") === "not_admin") {
-      setError("Akun ini belum terdaftar sebagai admin. Periksa ADMIN_EMAILS di .env.local.");
-      return;
-    }
-    if (new URLSearchParams(window.location.search).get("error") === "profile") {
-      const timeout = window.setTimeout(() => {
-        setError(
-          "Akun berhasil dikonfirmasi, tetapi profil belum tersimpan. Coba masuk lagi atau hubungi admin.",
-        );
-      });
-      return () => window.clearTimeout(timeout);
-    }
-    return undefined;
+    const errorType = new URLSearchParams(window.location.search).get("error");
+    const message = errorType === "not_admin"
+      ? "Akun ini belum terdaftar sebagai admin. Periksa ADMIN_EMAILS di .env.local."
+      : errorType === "profile"
+        ? "Akun berhasil dikonfirmasi, tetapi profil belum tersimpan. Coba masuk lagi atau hubungi admin."
+        : errorType === "auth"
+          ? "Proses masuk gagal. Silakan coba lagi."
+          : null;
+    if (!message) return undefined;
+    const timeout = window.setTimeout(() => setError(message), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -134,6 +133,9 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Masuk..." : "Masuk"}
             </Button>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />atau<span className="h-px flex-1 bg-border" /></div>
+            <GoogleAuthButton mode="login" />
 
             <p className="text-sm text-center text-muted-foreground">
               Belum punya akun?{" "}

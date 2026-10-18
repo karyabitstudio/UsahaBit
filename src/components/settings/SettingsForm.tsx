@@ -16,9 +16,10 @@ import {
 
 interface SettingsFormProps {
   profile: any;
+  canUseCustomBranding?: boolean;
 }
 
-export function SettingsForm({ profile }: SettingsFormProps) {
+export function SettingsForm({ profile, canUseCustomBranding = false }: SettingsFormProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -30,13 +31,14 @@ export function SettingsForm({ profile }: SettingsFormProps) {
   const [brandColor, setBrandColor] = useState(
     profile?.brand_color || "#2563eb",
   );
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || "");
+  const [logoUrl, setLogoUrl] = useState(canUseCustomBranding ? profile?.logo_url || "" : "");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUseCustomBranding) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -74,8 +76,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         full_name: fullName,
         business_name: businessName,
         phone: phone || null,
-        brand_color: brandColor,
-        logo_url: logoUrl || null,
+        ...(canUseCustomBranding ? { brand_color: brandColor, logo_url: logoUrl || null } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", profile.id);
@@ -148,10 +149,11 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         <CardHeader>
           <CardTitle>Branding Invoice</CardTitle>
           <CardDescription>
-            Logo dan warna yang muncul di PDF invoice
+            Logo dan warna khusus yang muncul di PDF invoice
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!canUseCustomBranding && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">Custom branding tersedia di paket Pro dan Business. <a href="/pricing" className="font-semibold text-primary hover:underline">Lihat paket</a></div>}
           <div className="space-y-2">
             <Label>Logo Usaha</Label>
             <div className="flex items-center gap-4">
@@ -171,7 +173,7 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                   type="file"
                   accept="image/*"
                   onChange={handleLogoUpload}
-                  disabled={uploading}
+                  disabled={uploading || !canUseCustomBranding}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   PNG/JPG, maksimal 1MB. Disarankan latar transparan.
@@ -189,11 +191,13 @@ export function SettingsForm({ profile }: SettingsFormProps) {
                 value={brandColor}
                 onChange={(e) => setBrandColor(e.target.value)}
                 className="w-16 h-10 p-1 cursor-pointer"
+                disabled={!canUseCustomBranding}
               />
               <Input
                 value={brandColor}
                 onChange={(e) => setBrandColor(e.target.value)}
                 className="flex-1"
+                disabled={!canUseCustomBranding}
               />
             </div>
           </div>

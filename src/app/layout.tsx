@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { ClickTracker } from "@/components/ClickTracker";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -28,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="id"
       className={`${plusJakartaSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><ClickTracker />{children}</body>
     </html>
   );
 }
