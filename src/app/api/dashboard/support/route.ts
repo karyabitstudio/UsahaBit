@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { getEffectivePlan } from "@/lib/plan";
+import { sendSupportTicketEmail } from "@/lib/support-email";
 
 async function context() {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ async function context() {
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("plan, plan_expires_at").eq("id", ownerId).maybeSingle();
   const plan = isAdminEmail(user.email) ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);
-  return { supabase, admin, ownerId, plan };
+  return { supabase, admin, ownerId, plan, userEmail: user.email };
 }
 
 export async function GET() {
@@ -39,6 +40,19 @@ export async function POST(request: Request) {
     console.error("Failed to create support ticket:", error.message);
     return NextResponse.json({ error: "Tiket support gagal disimpan. Pastikan migrasi support sudah diterapkan." }, { status: 500 });
   }
-  return NextResponse.json({ ticket: data }, { status: 201 });
+  let notificationWarning: string | undefined;
+  try {
+    await sendSupportTicketEmail({
+      subject: data.subject,
+      message: data.message,
+      userEmail: result.userEmail,
+      plan: data.plan,
+      priority: data.priority,
+      createdAt: data.created_at,
+    });
+  } catch (emailError) {
+    console.error("Failed to email admins about a support ticket:", emailError);
+    notificationWarning = "Tiket tersimpan, tetapi email notifikasi ke admin gagal dikirim.";
+  }
+  return NextResponse.json({ ticket: data, notificationWarning }, { status: 201 });
 }
-
