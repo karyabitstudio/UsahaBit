@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -18,20 +18,24 @@ export function AdminSupportInbox() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  async function loadTickets() {
-    setLoading(true);
+  async function loadTickets(showLoading = true) {
+    if (showLoading) setLoading(true);
     try {
       const response = await fetch("/api/admin/support", { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Tiket gagal dimuat.");
       setTickets(result.tickets);
-      setReplies(Object.fromEntries(result.tickets.map((ticket: Ticket) => [ticket.id, ticket.admin_reply || ""])));
-      setSelectedStatuses(Object.fromEntries(result.tickets.map((ticket: Ticket) => [ticket.id, ticket.status])));
+      setReplies((current) => Object.fromEntries(result.tickets.map((ticket: Ticket) => [ticket.id, current[ticket.id] ?? ticket.admin_reply ?? ""])));
+      setSelectedStatuses((current) => Object.fromEntries(result.tickets.map((ticket: Ticket) => [ticket.id, current[ticket.id] ?? ticket.status])));
       setError(null);
     } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Tiket gagal dimuat."); }
-    finally { setLoading(false); }
+    finally { if (showLoading) setLoading(false); }
   }
-  useEffect(() => { void loadTickets(); }, []);
+  useEffect(() => {
+    void loadTickets();
+    const interval = window.setInterval(() => void loadTickets(false), 15000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   async function updateTicket(ticket: Ticket) {
     setSavingId(ticket.id); setError(null); setNotice(null);

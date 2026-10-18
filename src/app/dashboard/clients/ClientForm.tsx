@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RotateCcw } from "lucide-react";
 
 interface ClientFormProps {
   workspaceId: string;
@@ -32,6 +33,15 @@ export function ClientForm({ initialData, workspaceId }: ClientFormProps) {
   const [notes, setNotes] = useState(initialData?.notes || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setName(initialData?.name || "");
+    setEmail(initialData?.email || "");
+    setPhone(initialData?.phone || "");
+    setAddress(initialData?.address || "");
+    setNotes(initialData?.notes || "");
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +153,9 @@ export function ClientForm({ initialData, workspaceId }: ClientFormProps) {
             : isEdit
               ? "Update Client"
               : "Simpan Client"}
+        </Button>
+        <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
+          <RotateCcw className="mr-2 h-4 w-4" />Reset
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Batal

@@ -13,7 +13,7 @@ async function context() {
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("plan, plan_expires_at").eq("id", ownerId).maybeSingle();
   const plan = isAdminEmail(user.email) ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);
-  return { supabase, ownerId, plan };
+  return { supabase, admin, ownerId, plan };
 }
 
 export async function GET() {
@@ -35,7 +35,11 @@ export async function POST(request: Request) {
   const message = typeof input.message === "string" ? input.message.trim() : "";
   if (!subject || subject.length > 140 || !message || message.length > 5000) return NextResponse.json({ error: "Subjek wajib diisi (maksimal 140 karakter) dan pesan maksimal 5.000 karakter." }, { status: 400 });
   const priority = result.plan === "business" ? "business" : result.plan === "pro" ? "priority" : "normal";
-  const { data, error } = await result.supabase.from("support_tickets").insert({ user_id: result.ownerId, subject, message, plan: result.plan, priority }).select("id, subject, message, plan, priority, status, admin_reply, created_at, updated_at").single();
-  if (error) return NextResponse.json({ error: "Tiket support gagal dikirim." }, { status: 500 });
+  const { data, error } = await result.admin.from("support_tickets").insert({ user_id: result.ownerId, subject, message, plan: result.plan, priority }).select("id, subject, message, plan, priority, status, admin_reply, created_at, updated_at").single();
+  if (error) {
+    console.error("Failed to create support ticket:", error.message);
+    return NextResponse.json({ error: "Tiket support gagal disimpan. Pastikan migrasi support sudah diterapkan." }, { status: 500 });
+  }
   return NextResponse.json({ ticket: data }, { status: 201 });
 }
+

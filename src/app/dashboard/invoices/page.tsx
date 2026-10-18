@@ -1,32 +1,15 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { InvoiceForm } from "./InvoiceForm";
-import { resolveWorkspaceOwnerId, getWorkspaceProfile } from "@/lib/workspace";
-import { getEffectivePlan } from "@/lib/plan";
-import { isAdminEmail } from "@/lib/admin-auth";
+import { resolveWorkspaceOwnerId } from "@/lib/workspace";
+import { buttonVariants } from "@/components/ui/button";
+import { InvoiceListWorkspace } from "@/components/invoices/InvoiceListWorkspace";
 
-export default async function NewInvoicePage() {
+export default async function InvoicesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const workspaceId = await resolveWorkspaceOwnerId(supabase, user.id);
+  const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, issue_date, due_date, status, total, clients(name)").eq("user_id", workspaceId).order("issue_date", { ascending: false });
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, name")
-    .eq("user_id", workspaceId)
-    .order("name");
-  const profile = await getWorkspaceProfile(workspaceId);
-  const canUseAllTemplates = isAdminEmail(user?.email) || getEffectivePlan(profile?.plan, profile?.plan_expires_at || null) !== "free";
-  const { data: products } = canUseAllTemplates ? await supabase.from("catalog_products").select("id, name, description, price").eq("user_id", workspaceId).order("name") : { data: [] };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Buat Invoice</h1>
-        <p className="text-muted-foreground">Isi detail invoice baru</p>
-      </div>
-      <InvoiceForm clients={clients || []} workspaceId={workspaceId} products={products || []} canUseAllTemplates={canUseAllTemplates} />
-    </div>
-  );
+  return <div className="mx-auto max-w-5xl space-y-6"><header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-xl font-bold tracking-tight sm:text-2xl">Invoice</h1><p className="text-muted-foreground">Lihat, edit, atau hapus invoice yang sudah dibuat.</p></div><Link href="/dashboard/invoices/new" className={buttonVariants()}>Buat Invoice</Link></header><InvoiceListWorkspace invoices={(invoices || []) as any[]} /></div>;
 }

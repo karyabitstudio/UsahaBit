@@ -1,18 +1,15 @@
-import { ClientForm } from "./ClientForm";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { resolveWorkspaceOwnerId } from "@/lib/workspace";
+import { buttonVariants } from "@/components/ui/button";
+import { ClientListWorkspace } from "@/components/clients/ClientListWorkspace";
 
-export default async function NewClientPage() {
+export default async function ClientsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Tambah Client</h1>
-        <p className="text-muted-foreground">Isi data client baru</p>
-      </div>
-      <ClientForm workspaceId={workspaceId} />
-    </div>
-  );
+  if (!user) return null;
+  const workspaceId = await resolveWorkspaceOwnerId(supabase, user.id);
+  const { data: clients } = await supabase.from("clients").select("id, name, email, phone, address, notes").eq("user_id", workspaceId).order("name");
+
+  return <div className="mx-auto max-w-5xl space-y-6"><header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-xl font-bold tracking-tight sm:text-2xl">Daftar Klien</h1><p className="text-muted-foreground">Kelola informasi klien untuk invoice usahamu.</p></div><Link href="/dashboard/clients/new" className={buttonVariants()}>Tambah klien</Link></header><ClientListWorkspace clients={clients || []} /></div>;
 }

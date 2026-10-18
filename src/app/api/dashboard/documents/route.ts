@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { getEffectivePlan, getPlanLimits } from "@/lib/plan";
 import { getWorkspaceProfile, resolveWorkspaceOwnerId } from "@/lib/workspace";
@@ -83,4 +84,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Surat gagal disimpan." }, { status: 500 });
   }
   return NextResponse.json({ document: data, used: (count || 0) + 1, limit: Number.isFinite(limits.maxDocuments) ? limits.maxDocuments : null }, { status: 201 });
+}
+
+export async function PATCH(request: Request) {
+  const context = await getUserAndPlan();
+  if ("response" in context) return context.response;
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "Data surat tidak valid." }, { status: 400 }); }
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Data surat tidak valid." }, { status: 400 });
+  const input = body as { id?: unknown; template?: unknown; title?: unknown; recipient?: unknown; body?: unknown; amount?: unknown };
+  if (typeof input.id !== "string" || typeof input.template !== "string" || !allTemplates.includes(input.template)) return NextResponse.json({ error: "Surat atau template tidak valid." }, { status: 400 });
+  if (context.plan === "free" && !freeTemplates.includes(input.template)) return NextResponse.json({ error: "Template ini tersedia di paket Pro dan Business." }, { status: 403 });
+  if (typeof input.title !== "string" || !input.title.trim() || input.title.length > 120 || typeof input.recipient !== "string" || input.recipient.length > 160 || typeof input.body !== "string" || !input.body.trim() || input.body.length > 10000) return NextResponse.json({ error: "Periksa judul, penerima, dan isi surat." }, { status: 400 });
+  const amount = input.amount === undefined || input.amount === "" ? null : Number(input.amount);
+  if (amount !== null && (!Number.isFinite(amount) || amount < 0 || amount > 1_000_000_000_000)) return NextResponse.json({ error: "Nominal tidak valid." }, { status: 400 });
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("business_documents").update({ template: input.template, title: input.title.trim(), recipient: input.recipient.trim(), body: input.body.trim(), amount }).eq("id", input.id).eq("user_id", context.ownerId).select("id, template, title, recipient, body, amount, created_at").maybeSingle();
+  if (error) return NextResponse.json({ error: "Surat gagal diperbarui." }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Surat tidak ditemukan." }, { status: 404 });
+  return NextResponse.json({ document: data });
+}
+
+export async function DELETE(request: Request) {
+  const context = await getUserAndPlan();
+  if ("response" in context) return context.response;
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "Surat tidak valid." }, { status: 400 }); }
+  const id = body && typeof body === "object" && "id" in body && typeof body.id === "string" ? body.id : "";
+  if (!id) return NextResponse.json({ error: "Surat tidak valid." }, { status: 400 });
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("business_documents").delete().eq("id", id).eq("user_id", context.ownerId).select("id").maybeSingle();
+  if (error) return NextResponse.json({ error: "Surat gagal dihapus." }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Surat tidak ditemukan." }, { status: 404 });
+  return NextResponse.json({ success: true });
 }

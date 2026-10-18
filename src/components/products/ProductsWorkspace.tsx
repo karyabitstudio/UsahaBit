@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Product = { id: string; name: string; description: string; price: number; created_at: string };
@@ -78,7 +78,7 @@ export function ProductsWorkspace() {
           <input required maxLength={120} value={name} onChange={(event) => setName(event.target.value)} placeholder="Nama produk / jasa" className="h-10 rounded-lg border bg-background px-3 text-sm" />
           <input maxLength={500} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Deskripsi (opsional)" className="h-10 rounded-lg border bg-background px-3 text-sm" />
           <input required type="number" min="0" max="999999999999" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="Harga (Rp)" className="h-10 rounded-lg border bg-background px-3 text-sm" />
-          <div className="flex gap-2"><Button type="submit" disabled={saving}><Plus className="mr-2 h-4 w-4" />{saving ? "Menyimpan…" : editing ? "Perbarui" : "Tambah"}</Button>{editing && <Button type="button" variant="outline" size="icon" onClick={resetForm} aria-label="Batalkan edit"><X className="h-4 w-4" /></Button>}</div>
+          <div className="flex gap-2"><Button type="submit" disabled={saving}><Plus className="mr-2 h-4 w-4" />{saving ? "Menyimpan…" : editing ? "Perbarui" : "Tambah"}</Button><Button type="button" variant="outline" onClick={resetForm} disabled={saving}><RotateCcw className="mr-2 h-4 w-4" />Reset</Button></div>
         </form>
       </section>
       <section className="space-y-3 rounded-2xl border bg-card p-5 sm:p-6">

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, Lock, Plus, Trash2 } from "lucide-react";
+import { Check, Lock, Plus, RotateCcw, Trash2 } from "lucide-react";
 
 interface InvoiceItem {
   description: string;
@@ -87,6 +87,18 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
     setItems(items.filter((_, i) => i !== index));
   };
 
+  const resetForm = () => {
+    setClientId(initialData?.client_id || "");
+    setIssueDate(initialData?.issue_date || new Date().toISOString().split("T")[0]);
+    setDueDate(initialData?.due_date || "");
+    setStatus(initialData?.status || "draft");
+    setNotes(initialData?.notes || "");
+    setTemplate(initialData?.template || "classic");
+    setCatalogProductId("");
+    setItems(initialData?.invoice_items?.length ? initialData.invoice_items.map((item: any) => ({ description: item.description, quantity: Number(item.quantity), unit_price: Number(item.unit_price) })) : [{ description: "", quantity: 1, unit_price: 0 }]);
+    setError(null);
+  };
+
   const generateInvoiceNumber = async (userId: string) => {
     const year = new Date().getFullYear();
     const { count } = await supabase
@@ -102,22 +114,19 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
     e.preventDefault();
     setLoading(true);
     setError(null);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Sesi login berakhir. Silakan masuk kembali.");
-      setLoading(false);
-      return;
-    }
-
     try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error("Sesi login berakhir. Silakan masuk kembali.");
+
       let invoiceId = initialData?.id;
       let invoiceNumber = initialData?.invoice_number;
 
       if (!isEdit) {
-        const limitResponse = await fetch("/api/check-invoice-limit", { cache: "no-store" });
+        const limitResponse = await fetch("/api/check-invoice-limit", { cache: "no-store", signal: AbortSignal.timeout(15_000) });
         if (!limitResponse.ok) throw new Error("Gagal memeriksa batas invoice. Coba lagi.");
         const limit = await limitResponse.json();
         if (!limit.allowed) {
@@ -194,6 +203,7 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan");
+    } finally {
       setLoading(false);
     }
   };
@@ -409,6 +419,9 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
         </Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Batal
+        </Button>
+        <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
+          <RotateCcw className="mr-2 h-4 w-4" />Reset formulir
         </Button>
       </div>
     </form>

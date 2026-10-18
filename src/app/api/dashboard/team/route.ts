@@ -40,10 +40,11 @@ export async function POST(request: Request) {
   const { data: existingMembers, error: listError } = await admin.from("workspace_members").select("id, invited_email, member_user_id, status").eq("owner_id", ownerId);
   if (listError) return NextResponse.json({ error: "Kapasitas tim gagal diperiksa." }, { status: 500 });
   const activeSeats = (existingMembers || []).filter((item) => item.status === "active" || item.status === "pending").length;
-  if (activeSeats >= 4) return NextResponse.json({ error: "Paket Business mencakup maksimal lima orang termasuk pemilik." }, { status: 409 });
-  if ((existingMembers || []).some((item) => item.invited_email.toLowerCase() === email)) return NextResponse.json({ error: "Email ini sudah diundang ke tim." }, { status: 409 });
+  const existingInvite = (existingMembers || []).find((item) => item.invited_email.toLowerCase() === email);
+  if (activeSeats >= 4 && !existingInvite) return NextResponse.json({ error: "Paket Business mencakup maksimal lima orang termasuk pemilik." }, { status: 409 });
+  if (existingInvite?.status === "active") return NextResponse.json({ error: "Email ini sudah menjadi anggota tim." }, { status: 409 });
   const { data: pendingElsewhere } = await admin.from("workspace_members").select("id").eq("invited_email", email).eq("status", "pending").maybeSingle();
-  if (pendingElsewhere) return NextResponse.json({ error: "Email ini sudah menunggu undangan dari workspace lain." }, { status: 409 });
+  if (pendingElsewhere && pendingElsewhere.id !== existingInvite?.id) return NextResponse.json({ error: "Email ini sudah menunggu undangan dari workspace lain." }, { status: 409 });
 
   let existingAuthUser: { id: string } | null = null;
   for (let page = 1; page <= 20 && !existingAuthUser; page += 1) {
@@ -58,19 +59,27 @@ export async function POST(request: Request) {
     if (alreadyOnTeam) return NextResponse.json({ error: "Akun tersebut sudah menjadi anggota tim lain." }, { status: 409 });
   }
 
-  const { data: member, error: insertError } = await admin.from("workspace_members").insert({ owner_id: ownerId, invited_email: email, member_user_id: existingAuthUser?.id || null, status: existingAuthUser ? "active" : "pending" }).select("id, invited_email, member_user_id, status, created_at").single();
-  if (insertError) return NextResponse.json({ error: "Undangan gagal disimpan." }, { status: 500 });
+  let member = existingInvite || null;
+  if (existingAuthUser && existingInvite) {
+    const { data, error } = await admin.from("workspace_members").update({ member_user_id: existingAuthUser.id, status: "active" }).eq("id", existingInvite.id).select("id, invited_email, member_user_id, status, created_at").single();
+    if (error) return NextResponse.json({ error: "Anggota gagal diaktifkan." }, { status: 500 });
+    member = data;
+  } else if (!existingInvite) {
+    const { data, error } = await admin.from("workspace_members").insert({ owner_id: ownerId, invited_email: email, member_user_id: existingAuthUser?.id || null, status: existingAuthUser ? "active" : "pending" }).select("id, invited_email, member_user_id, status, created_at").single();
+    if (error) return NextResponse.json({ error: "Undangan gagal disimpan." }, { status: 500 });
+    member = data;
+  }
 
   if (!existingAuthUser) {
     const origin = new URL(request.url).origin;
-    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${origin}/auth/callback?next=/dashboard` });
+    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${origin}/auth/accept-invite` });
     if (inviteError) {
-      await admin.from("workspace_members").delete().eq("id", member.id);
+      if (!existingInvite && member) await admin.from("workspace_members").delete().eq("id", member.id);
       console.error("Failed to send team invitation", inviteError.message);
-      return NextResponse.json({ error: "Email undangan gagal dikirim. Pastikan SMTP Supabase sudah dikonfigurasi." }, { status: 502 });
+      return NextResponse.json({ error: `Email undangan gagal dikirim: ${inviteError.message}` }, { status: 502 });
     }
   }
-  return NextResponse.json({ member, seatsUsed: activeSeats + 2 }, { status: 201 });
+  return NextResponse.json({ member, seatsUsed: activeSeats + (existingInvite ? 1 : 2) }, { status: existingInvite ? 200 : 201 });
 }
 
 export async function DELETE(request: Request) {

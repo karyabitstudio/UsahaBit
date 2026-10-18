@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -62,6 +63,16 @@ export function SettingsForm({ profile, canUseCustomBranding = false }: Settings
     const { data } = supabase.storage.from("logos").getPublicUrl(filePath);
     setLogoUrl(data.publicUrl);
     setUploading(false);
+  };
+
+  const resetForm = () => {
+    setFullName(profile?.full_name || "");
+    setBusinessName(profile?.business_name || "");
+    setPhone(profile?.phone || "");
+    setBrandColor(profile?.brand_color || "#2563eb");
+    setLogoUrl(canUseCustomBranding ? profile?.logo_url || "" : "");
+    setError(null);
+    setMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -204,9 +215,7 @@ export function SettingsForm({ profile, canUseCustomBranding = false }: Settings
         </CardContent>
       </Card>
 
-      <Button type="submit" disabled={loading || uploading}>
-        {loading ? "Menyimpan..." : "Simpan Perubahan"}
-      </Button>
+      <div className="flex flex-wrap gap-2"><Button type="submit" disabled={loading || uploading}>{loading ? "Menyimpan..." : "Simpan Perubahan"}</Button><Button type="button" variant="outline" onClick={resetForm} disabled={loading || uploading}><RotateCcw className="mr-2 h-4 w-4" />Reset</Button></div>
     </form>
   );
 }
