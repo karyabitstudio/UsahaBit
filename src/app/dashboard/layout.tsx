@@ -22,15 +22,15 @@ export default async function DashboardLayout({
   const workspaceId = await resolveWorkspaceOwnerId(supabase, user.id);
   const profile = await getWorkspaceProfile(workspaceId);
   const isAdmin = isAdminEmail(user.email);
-  const isBusiness = isAdmin || getEffectivePlan(profile?.plan, profile?.plan_expires_at || null) === "business";
+  const effectivePlan = getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);
   const accessProfile = {
     ...profile,
-    plan: isBusiness ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null),
+    plan: isAdmin ? "business" : effectivePlan,
   };
 
   return (
     <div className="min-h-screen md:flex">
-      <Sidebar profile={accessProfile} isAdmin={isBusiness} />
+      <Sidebar profile={accessProfile} isAdmin={isAdmin} />
       <main className="min-w-0 flex-1 p-3 sm:p-6 lg:p-8">{children}</main>
     </div>
   );
