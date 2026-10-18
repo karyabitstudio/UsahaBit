@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Lock, Plus, Trash2 } from "lucide-react";
 
 interface InvoiceItem {
   description: string;
@@ -62,6 +62,11 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
   );
   const tax = 0; // bisa ditambah PPN nanti
   const total = subtotal + tax;
+  const invoiceTemplates = [
+    { id: "classic", name: "Classic", description: "Tampilan bersih dan profesional." },
+    { id: "modern", name: "Modern", description: "Header berwarna dengan kesan tegas." },
+    { id: "minimal", name: "Minimal", description: "Sederhana dengan garis dan ruang lega." },
+  ] as const;
 
   const updateItem = (
     index: number,
@@ -329,13 +334,23 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
       {/* Total & Notes */}
       <div className="space-y-2">
         <Label htmlFor="invoiceTemplate">Template invoice</Label>
-        <Select value={canUseAllTemplates ? template : "classic"} onValueChange={setTemplate} disabled={!canUseAllTemplates}>
-          <SelectTrigger id="invoiceTemplate"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="classic">Classic</SelectItem>
-            {canUseAllTemplates && <><SelectItem value="modern">Modern</SelectItem><SelectItem value="minimal">Minimal</SelectItem></>}
-          </SelectContent>
-        </Select>
+        <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Pilih template invoice">
+          {invoiceTemplates.map((item) => {
+            const locked = item.id !== "classic" && !canUseAllTemplates;
+            const selected = (canUseAllTemplates ? template : "classic") === item.id;
+            return <button key={item.id} type="button" role="radio" aria-checked={selected} aria-disabled={locked} onClick={() => { if (!locked) setTemplate(item.id); }} className={`rounded-xl border p-3 text-left transition ${selected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/50"} ${locked ? "cursor-not-allowed opacity-75" : ""}`}>
+              <div className="mb-3 flex aspect-[1.45/1] items-center justify-center rounded-lg bg-muted p-3">
+                <div className={`h-full w-[62%] overflow-hidden rounded border bg-white p-2 shadow-sm ${item.id === "modern" ? "border-slate-800" : "border-slate-200"}`}>
+                  <div className={`mb-2 flex h-5 items-center justify-between px-1 ${item.id === "modern" ? "bg-slate-800" : item.id === "minimal" ? "border-b border-slate-300" : "bg-blue-600"}`}><span className={`h-1 w-8 rounded ${item.id === "minimal" ? "bg-slate-800" : "bg-white"}`} /><span className={`h-1 w-4 rounded ${item.id === "minimal" ? "bg-slate-400" : "bg-white/70"}`} /></div>
+                  <div className="mb-2 h-1 w-9 rounded bg-slate-700" /><div className="space-y-1"><div className="h-1 rounded bg-slate-200" /><div className="h-1 w-4/5 rounded bg-slate-200" /><div className="mt-2 h-4 rounded-sm bg-slate-100" /></div>
+                  <div className="ml-auto mt-2 h-1 w-6 rounded bg-blue-500" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{item.name}</span>{locked ? <Lock className="h-4 w-4 text-muted-foreground" /> : selected ? <Check className="h-4 w-4 text-primary" /> : null}</div>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.description}{locked ? " · Pro/Business" : ""}</p>
+            </button>;
+          })}
+        </div>
         {!canUseAllTemplates && <p className="text-xs text-muted-foreground">Template Modern dan Minimal tersedia di Pro dan Business. <a href="/pricing" className="font-semibold text-primary hover:underline">Lihat paket</a></p>}
       </div>
 

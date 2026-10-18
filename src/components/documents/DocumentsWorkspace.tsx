@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileText, Lock, Printer, Save } from "lucide-react";
+import { Check, FileText, Lock, Printer, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type TemplateId = "quotation" | "work_order" | "receipt" | "task_letter" | "completion_report" | "payment_notice";
@@ -57,7 +57,6 @@ export function DocumentsWorkspace({ profile, canUseAllTemplates }: { profile: a
 
   useEffect(() => { void loadDocuments(); }, []);
 
-  const availableTemplates = templates.filter((item) => canUseAllTemplates || !item.premium);
   const selectedTemplate = templates.find((item) => item.id === template) || templates[0];
 
   async function saveDocument(event: React.FormEvent<HTMLFormElement>) {
@@ -93,7 +92,16 @@ export function DocumentsWorkspace({ profile, canUseAllTemplates }: { profile: a
         {error && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
         {message && <p role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700">{message}</p>}
         <form onSubmit={saveDocument} className="space-y-4">
-          <label className="block space-y-2 text-sm font-medium">Pilih template<select value={template} onChange={(event) => setTemplate(event.target.value as TemplateId)} className="h-10 w-full rounded-lg border bg-background px-3 font-normal">{availableTemplates.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+          <div className="space-y-2"><p className="text-sm font-medium">Pilih template</p><div className="grid grid-cols-2 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Pilih template surat">{templates.map((item) => {
+            const locked = Boolean(item.premium && !canUseAllTemplates);
+            const selected = template === item.id;
+            return <button key={item.id} type="button" role="radio" aria-checked={selected} aria-disabled={locked} onClick={() => { if (!locked) setTemplate(item.id); }} className={`rounded-xl border p-2 text-left transition ${selected ? "border-primary ring-2 ring-primary/20" : "hover:border-primary/50"} ${locked ? "cursor-not-allowed opacity-75" : ""}`}>
+              <span className="mb-2 flex aspect-[1.25/1] items-center justify-center rounded-lg bg-muted p-2"><span className={`flex h-full w-[74%] flex-col rounded border bg-white p-2 shadow-sm ${item.id === "receipt" ? "border-dashed border-slate-400" : item.id === "work_order" ? "border-slate-500" : "border-slate-200"}`}><span className={`mb-2 h-2 rounded-sm ${item.id === "payment_notice" ? "bg-amber-400" : item.id === "work_order" ? "bg-slate-700" : "bg-blue-600"}`} /><span className="mx-auto mb-2 h-1 w-10 rounded bg-slate-500" /><span className="mb-1 h-1 w-full rounded bg-slate-200" /><span className="mb-1 h-1 w-4/5 rounded bg-slate-200" /><span className="mt-auto h-1 w-8 self-end rounded bg-slate-400" /></span></span>
+              <span className="flex items-center justify-between gap-1 text-xs font-semibold"><span>{item.label}</span>{locked ? <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : selected ? <Check className="h-3.5 w-3.5 shrink-0 text-primary" /> : null}</span>
+              {locked && <span className="mt-1 block text-[10px] text-muted-foreground">Pro / Business</span>}
+            </button>;
+          })}</div></div>
+          <div className="rounded-xl border bg-muted/30 p-3"><p className="mb-2 text-xs font-semibold text-muted-foreground">Pratinjau template terpilih</p><article className={`min-h-36 rounded-lg border bg-white p-4 text-slate-900 shadow-sm ${template === "receipt" ? "border-dashed" : ""}`}><div className={`mb-3 pb-2 text-center ${template === "work_order" ? "border-b-2 border-slate-700" : "border-b border-slate-200"}`}><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-slate-500">{profile?.business_name || "Nama Usaha"}</p><p className="mt-1 text-xs font-bold">{selectedTemplate.label}</p></div><p className="text-[10px] font-semibold">{title || "Judul dokumen"}</p><p className="mt-1 text-[9px] text-slate-500">Kepada: {recipient || "Nama penerima"}</p><p className="mt-3 line-clamp-3 whitespace-pre-wrap text-[9px] leading-4 text-slate-600">{body || "Isi surat akan tampil di bagian ini. Lengkapi kolom di samping untuk melihat pratinjau isi dokumen."}</p>{(template === "receipt" || template === "payment_notice") && <p className="mt-3 border-t pt-2 text-right text-[10px] font-bold">{amount ? formatMoney(Number(amount)) : "Rp 0"}</p>}</article></div>
           {!canUseAllTemplates && <p className="-mt-2 text-xs text-muted-foreground">Tiga template tambahan tersedia di Pro dan Business. <Link href="/pricing" className="font-semibold text-primary hover:underline">Lihat paket</Link></p>}
           <label className="block space-y-2 text-sm font-medium">Judul / nomor surat<input required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Contoh: Penawaran desain logo" className="h-10 w-full rounded-lg border bg-background px-3 font-normal" /></label>
           <label className="block space-y-2 text-sm font-medium">Penerima<input maxLength={160} value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="Nama klien atau perusahaan" className="h-10 w-full rounded-lg border bg-background px-3 font-normal" /></label>
