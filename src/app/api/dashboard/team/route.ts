@@ -90,8 +90,36 @@ export async function DELETE(request: Request) {
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Anggota tidak valid." }, { status: 400 }); }
   const memberId = body && typeof body === "object" && "memberId" in body && typeof body.memberId === "string" ? body.memberId : "";
   if (!memberId) return NextResponse.json({ error: "Anggota tidak valid." }, { status: 400 });
+
+  const { data: member, error: lookupError } = await context.admin
+    .from("workspace_members")
+    .select("id, member_user_id, invited_email")
+    .eq("id", memberId)
+    .eq("owner_id", context.ownerId)
+    .maybeSingle();
+  if (lookupError) return NextResponse.json({ error: "Anggota gagal diperiksa." }, { status: 500 });
+  if (!member) return NextResponse.json({ error: "Anggota tidak ditemukan." }, { status: 404 });
+
+  let notificationId: string | null = null;
+  if (member.member_user_id) {
+    const { data: ownerProfile } = await context.admin.from("profiles").select("business_name").eq("id", context.ownerId).maybeSingle();
+    const { data: notification, error: notificationError } = await context.admin
+      .from("workspace_notifications")
+      .insert({ user_id: member.member_user_id, kind: "removed_from_workspace", workspace_name: ownerProfile?.business_name || "workspace" })
+      .select("id")
+      .single();
+    if (notificationError) {
+      console.error("Failed to notify removed workspace member", notificationError.message);
+      return NextResponse.json({ error: "Notifikasi anggota gagal disiapkan. Pastikan migrasi notifikasi workspace sudah diterapkan." }, { status: 500 });
+    }
+    notificationId = notification.id;
+  }
+
   const { error, count } = await context.admin.from("workspace_members").delete({ count: "exact" }).eq("id", memberId).eq("owner_id", context.ownerId);
-  if (error) return NextResponse.json({ error: "Anggota gagal dikeluarkan." }, { status: 500 });
-  if (!count) return NextResponse.json({ error: "Anggota tidak ditemukan." }, { status: 404 });
-  return NextResponse.json({ success: true });
+  if (error || !count) {
+    if (notificationId) await context.admin.from("workspace_notifications").delete().eq("id", notificationId);
+    if (error) return NextResponse.json({ error: "Anggota gagal dikeluarkan." }, { status: 500 });
+    return NextResponse.json({ error: "Anggota tidak ditemukan." }, { status: 404 });
+  }
+  return NextResponse.json({ success: true, notified: Boolean(notificationId) });
 }
