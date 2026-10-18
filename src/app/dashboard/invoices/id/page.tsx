@@ -54,9 +54,7 @@ export default async function InvoiceDetailPage({
   if (!invoice) notFound();
 
   const profile = await getWorkspaceProfile(workspaceId);
-  const displayProfile = isAdminEmail(user?.email)
-    ? { ...profile, plan: "business", plan_expires_at: "9999-12-31T23:59:59.999Z" }
-    : profile;
+  const isAdmin = isAdminEmail(user?.email);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -101,14 +99,16 @@ export default async function InvoiceDetailPage({
           </Link>
           <DownloadPdfButton
             invoice={invoice}
-            profile={displayProfile}
+            profile={profile}
             client={invoice.clients}
             items={invoice.invoice_items || []}
+            hasFullAccess={isAdmin}
           />
           <SendWhatsAppButton
             invoice={invoice}
             client={invoice.clients}
-            profile={displayProfile}
+            profile={profile}
+            hasFullAccess={isAdmin}
           />
         </div>
       </div>

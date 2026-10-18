@@ -13,6 +13,7 @@ interface InvoiceDocumentProps {
   profile: any;
   client: any;
   items: any[];
+  hasFullAccess?: boolean;
 }
 
 export function InvoiceDocument({
@@ -20,10 +21,12 @@ export function InvoiceDocument({
   profile,
   client,
   items,
+  hasFullAccess = false,
 }: InvoiceDocumentProps) {
-  const hasPaidPlan =
+  const hasPaidPlan = hasFullAccess || (
     (profile?.plan === "pro" || profile?.plan === "business") &&
-    isPlanActive(profile?.plan_expires_at);
+    isPlanActive(profile?.plan_expires_at)
+  );
   const brandColor = hasPaidPlan ? profile?.brand_color || "#2563eb" : "#2563eb";
   const template = hasPaidPlan && ["classic", "modern", "minimal"].includes(invoice?.template)
     ? invoice.template

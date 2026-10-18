@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminEmail } from "@/lib/admin-auth";
 import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/site-settings";
 import {
   FileText,
@@ -61,6 +62,24 @@ async function DynamicHeroText() {
   return <HeroText settings={settings} />;
 }
 
+async function AdminLandingTools() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!isAdminEmail(user?.email)) return null;
+
+  return (
+    <section className="border-b border-primary/20 bg-primary/[.05] px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-medium"><span className="text-primary">Mode admin</span><span className="ml-2 text-muted-foreground">Kelola situs atau buka dashboard tanpa meninggalkan akses admin.</span></p>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard" className={buttonVariants({ size: "sm", variant: "outline" })}>Dashboard utama</Link>
+          <Link href="/admin" className={buttonVariants({ size: "sm" })}>Panel admin</Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-background">
@@ -76,6 +95,8 @@ export default function LandingPage() {
           </nav>
         </div>
       </header>
+
+      <Suspense fallback={null}><AdminLandingTools /></Suspense>
 
       <section className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-24">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/15 via-background/30 to-transparent" />

@@ -9,13 +9,15 @@ interface Props {
   invoice: any;
   client: any;
   profile: any;
+  hasFullAccess?: boolean;
 }
 
-export function SendWhatsAppButton({ invoice, client, profile }: Props) {
+export function SendWhatsAppButton({ invoice, client, profile, hasFullAccess = false }: Props) {
   const plan = profile?.plan || "free";
-  const isAllowed =
+  const isAllowed = hasFullAccess || (
     (plan === "pro" || plan === "business") &&
-    isPlanActive(profile?.plan_expires_at);
+    isPlanActive(profile?.plan_expires_at)
+  );
 
   const handleSend = () => {
     const amount = new Intl.NumberFormat("id-ID", {

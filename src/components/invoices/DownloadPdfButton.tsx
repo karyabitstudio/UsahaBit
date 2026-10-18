@@ -11,9 +11,10 @@ interface Props {
   profile: any;
   client: any;
   items: any[];
+  hasFullAccess?: boolean;
 }
 
-export function DownloadPdfButton({ invoice, profile, client, items }: Props) {
+export function DownloadPdfButton({ invoice, profile, client, items, hasFullAccess = false }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
@@ -25,6 +26,7 @@ export function DownloadPdfButton({ invoice, profile, client, items }: Props) {
           profile={profile}
           client={client}
           items={items}
+          hasFullAccess={hasFullAccess}
         />,
       ).toBlob();
 

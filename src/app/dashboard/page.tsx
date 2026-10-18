@@ -73,7 +73,6 @@ export default async function DashboardHomePage() {
           <article className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 font-semibold"><Package className="h-4 w-4 text-primary" />Fitur Pro</div><p className="mt-2 text-sm leading-6 text-muted-foreground">Katalog produk dan jasa, template invoice, branding, serta penggunaan tanpa batas paket gratis.</p><div className="mt-4 flex flex-wrap gap-2"><Link href="/dashboard/products" className={buttonVariants({ size: "sm", variant: "outline" })}>Katalog produk</Link><Link href="/dashboard/invoices" className={buttonVariants({ size: "sm", variant: "outline" })}>Template invoice</Link></div></article>
           <article className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 font-semibold"><UsersRound className="h-4 w-4 text-primary" />Fitur Business</div><p className="mt-2 text-sm leading-6 text-muted-foreground">Semua fitur Pro, laporan, pengelolaan anggota tim, dan antrean support Business.</p><div className="mt-4 flex flex-wrap gap-2"><Link href="/dashboard/reports" className={buttonVariants({ size: "sm", variant: "outline" })}><ChartNoAxesCombined className="mr-2 h-4 w-4" />Laporan</Link><Link href="/dashboard/team" className={buttonVariants({ size: "sm", variant: "outline" })}>Anggota tim</Link><Link href="/dashboard/support" className={buttonVariants({ size: "sm", variant: "outline" })}>Support</Link></div></article>
         </div>
-        <Link href="/admin" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">Buka panel admin <ArrowRight className="h-4 w-4" /></Link>
       </section>}
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -84,6 +83,11 @@ export default async function DashboardHomePage() {
         <div><h2 className="text-lg font-semibold">Invoice terbaru</h2><p className="mt-1 text-sm text-muted-foreground">Invoice terakhir yang dibuat di workspace ini.</p></div>
         {invoices.length ? <div className="mt-4 divide-y">{invoices.map((invoice) => <article key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-medium">{invoice.invoice_number || "Invoice"}</p><p className="mt-1 text-xs text-muted-foreground">{invoice.issue_date ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(`${invoice.issue_date}T00:00:00`)) : "Tanggal belum diatur"} - {statusLabels[invoice.status] || invoice.status}</p></div><p className="font-semibold tabular-nums">{formatCurrency(Number(invoice.total))}</p></article>)}</div> : <div className="mt-5 rounded-xl border border-dashed p-8 text-center"><FileText className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 font-medium">Belum ada invoice</p><p className="mt-1 text-sm text-muted-foreground">Buat invoice pertama untuk mulai memakai dashboard.</p><Link href="/dashboard/invoices/new" className={buttonVariants({ size: "sm", className: "mt-4" })}>Buat invoice</Link></div>}
       </section>
+
+      {isAdmin && <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/25 bg-card p-5 sm:p-6">
+        <div><h2 className="font-semibold">Panel admin</h2><p className="mt-1 text-sm text-muted-foreground">Atur konten landing page, paket pengguna, statistik klik, dan tiket support.</p></div>
+        <div className="flex flex-wrap gap-2"><Link href="/" className={buttonVariants({ variant: "outline" })}>Lihat landing page</Link><Link href="/admin" className={buttonVariants()}>Buka panel admin <ArrowRight className="ml-2 h-4 w-4" /></Link></div>
+      </section>}
     </div>
   );
 }
