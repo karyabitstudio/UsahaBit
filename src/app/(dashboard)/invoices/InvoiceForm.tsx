@@ -1,0 +1,370 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Trash2 } from "lucide-react";
+
+interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unit_price: number;
+}
+
+interface InvoiceFormProps {
+  initialData?: any;
+  clients: { id: string; name: string }[];
+}
+
+export function InvoiceForm({ initialData, clients }: InvoiceFormProps) {
+  const router = useRouter();
+  const supabase = createClient();
+  const isEdit = !!initialData;
+
+  const [clientId, setClientId] = useState(initialData?.client_id || "");
+  const [issueDate, setIssueDate] = useState(
+    initialData?.issue_date || new Date().toISOString().split("T")[0],
+  );
+  const [dueDate, setDueDate] = useState(initialData?.due_date || "");
+  const [status, setStatus] = useState(initialData?.status || "draft");
+  const [notes, setNotes] = useState(initialData?.notes || "");
+  const [items, setItems] = useState<InvoiceItem[]>(
+    initialData?.invoice_items?.length
+      ? initialData.invoice_items.map((i: any) => ({
+          description: i.description,
+          quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price),
+        }))
+      : [{ description: "", quantity: 1, unit_price: 0 }],
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.quantity * item.unit_price,
+    0,
+  );
+  const tax = 0; // bisa ditambah PPN nanti
+  const total = subtotal + tax;
+
+  const updateItem = (
+    index: number,
+    field: keyof InvoiceItem,
+    value: string | number,
+  ) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
+  };
+
+  const addItem = () => {
+    setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length === 1) return;
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const generateInvoiceNumber = async (userId: string) => {
+    const year = new Date().getFullYear();
+    const { count } = await supabase
+      .from("invoices")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    const sequence = String((count || 0) + 1).padStart(4, "0");
+    return `INV-${year}-${sequence}`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      let invoiceId = initialData?.id;
+      let invoiceNumber = initialData?.invoice_number;
+
+      if (!isEdit) {
+        invoiceNumber = await generateInvoiceNumber(user.id);
+
+        const { data: newInvoice, error: invError } = await supabase
+          .from("invoices")
+          .insert({
+            user_id: user.id,
+            client_id: clientId || null,
+            invoice_number: invoiceNumber,
+            issue_date: issueDate,
+            due_date: dueDate || null,
+            status,
+            subtotal,
+            tax,
+            total,
+            notes: notes || null,
+          })
+          .select()
+          .single();
+
+        if (invError) throw invError;
+        invoiceId = newInvoice.id;
+      } else {
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update({
+            client_id: clientId || null,
+            issue_date: issueDate,
+            due_date: dueDate || null,
+            status,
+            subtotal,
+            tax,
+            total,
+            notes: notes || null,
+          })
+          .eq("id", invoiceId)
+          .eq("user_id", user.id);
+
+        if (updateError) throw updateError;
+
+        // Hapus item lama
+        await supabase
+          .from("invoice_items")
+          .delete()
+          .eq("invoice_id", invoiceId);
+      }
+
+      // Insert items
+      const itemsPayload = items
+        .filter((item) => item.description.trim())
+        .map((item) => ({
+          invoice_id: invoiceId,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          amount: item.quantity * item.unit_price,
+        }));
+
+      if (itemsPayload.length > 0) {
+        const { error: itemsError } = await supabase
+          .from("invoice_items")
+          .insert(itemsPayload);
+        if (itemsError) throw itemsError;
+      }
+
+      router.push("/dashboard/invoices");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Terjadi kesalahan");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {error && (
+        <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+          {error}
+        </div>
+      )}
+
+      {/* Info Utama */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label>Client</Label>
+          <Select value={clientId} onValueChange={setClientId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih client" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Status</Label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Terkirim</SelectItem>
+              <SelectItem value="paid">Lunas</SelectItem>
+              <SelectItem value="overdue">Terlambat</SelectItem>
+              <SelectItem value="cancelled">Dibatalkan</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Tanggal Invoice</Label>
+          <Input
+            type="date"
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Jatuh Tempo</Label>
+          <Input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Items */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-base">Item / Jasa</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addItem}>
+            <Plus className="h-4 w-4 mr-1" /> Tambah Item
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {items.map((item, index) => (
+            <div key={index} className="grid grid-cols-2 items-end gap-3 md:grid-cols-12">
+              <div className="col-span-2 space-y-1 md:col-span-5">
+                <Label className="text-xs">Deskripsi</Label>
+                <Input
+                  value={item.description}
+                  onChange={(e) =>
+                    updateItem(index, "description", e.target.value)
+                  }
+                  placeholder="Nama barang / jasa"
+                  required
+                />
+              </div>
+              <div className="col-span-1 space-y-1 md:col-span-2">
+                <Label className="text-xs">Qty</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    updateItem(index, "quantity", Number(e.target.value))
+                  }
+                />
+              </div>
+              <div className="col-span-1 space-y-1 md:col-span-3">
+                <Label className="text-xs">Harga Satuan</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={item.unit_price}
+                  onChange={(e) =>
+                    updateItem(index, "unit_price", Number(e.target.value))
+                  }
+                />
+              </div>
+              <div className="col-span-1 space-y-1 md:col-span-1">
+                <Label className="text-xs">Total</Label>
+                <div className="h-10 flex items-center text-sm font-medium">
+                  {new Intl.NumberFormat("id-ID").format(
+                    item.quantity * item.unit_price,
+                  )}
+                </div>
+              </div>
+              <div className="col-span-1 flex justify-end md:col-span-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeItem(index)}
+                  disabled={items.length === 1}
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Total & Notes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label>Catatan</Label>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Catatan tambahan untuk client..."
+            rows={4}
+          />
+        </div>
+
+        <div className="space-y-2 rounded-lg bg-muted p-4 sm:p-6">
+          <div className="flex justify-between text-sm">
+            <span>Subtotal</span>
+            <span>
+              {new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                minimumFractionDigits: 0,
+              }).format(subtotal)}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span>Pajak</span>
+            <span>
+              {new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                minimumFractionDigits: 0,
+              }).format(tax)}
+            </span>
+          </div>
+          <div className="border-t pt-2 flex justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>
+              {new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                minimumFractionDigits: 0,
+              }).format(total)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <Button type="submit" disabled={loading}>
+          {loading
+            ? "Menyimpan..."
+            : isEdit
+              ? "Update Invoice"
+              : "Simpan Invoice"}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>
+          Batal
+        </Button>
+      </div>
+    </form>
+  );
+}
