@@ -70,6 +70,24 @@ export async function POST(request: Request) {
     member = data;
   }
 
+  if (existingAuthUser && member) {
+    const { data: ownerProfile } = await admin.from("profiles").select("business_name").eq("id", ownerId).maybeSingle();
+    const { error: notificationError } = await admin.from("workspace_notifications").insert({
+      user_id: existingAuthUser.id,
+      kind: "added_to_workspace",
+      workspace_name: ownerProfile?.business_name || "workspace",
+    });
+    if (notificationError) {
+      if (existingInvite) {
+        await admin.from("workspace_members").update({ member_user_id: null, status: "pending" }).eq("id", member.id).eq("owner_id", ownerId);
+      } else {
+        await admin.from("workspace_members").delete().eq("id", member.id).eq("owner_id", ownerId);
+      }
+      console.error("Failed to notify added workspace member", notificationError.message);
+      return NextResponse.json({ error: "Anggota belum diaktifkan. Pastikan migrasi notifikasi 007 dan 008 sudah dijalankan." }, { status: 500 });
+    }
+  }
+
   if (!existingAuthUser) {
     const origin = new URL(request.url).origin;
     const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${origin}/auth/accept-invite` });

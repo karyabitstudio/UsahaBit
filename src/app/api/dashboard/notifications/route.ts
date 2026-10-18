@@ -15,7 +15,10 @@ export async function GET() {
     .is("read_at", null)
     .order("created_at", { ascending: false })
     .limit(5);
-  if (error) return NextResponse.json({ error: "Notifikasi gagal dimuat." }, { status: 500 });
+  if (error) {
+    console.error("Failed to load workspace notifications", error.message);
+    return NextResponse.json({ error: "Notifikasi belum aktif. Pastikan migrasi 20261019000700_workspace_removal_notifications.sql sudah dijalankan di Supabase." }, { status: 500 });
+  }
   return NextResponse.json({ notifications: data || [] });
 }
 
