@@ -91,7 +91,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Paket pengguna gagal dibaca." }, { status: 500 });
     }
     const now = new Date();
-    const currentExpiry = current?.plan === plan && current.plan_expires_at
+    const currentExpiry = current && current.plan === plan && current.plan_expires_at
       ? new Date(current.plan_expires_at)
       : null;
     const start = currentExpiry && currentExpiry > now ? currentExpiry : now;
