@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { getEffectivePlan, getPlanLimits } from "@/lib/plan";
-import { getWorkspaceProfile, resolveWorkspaceOwnerId } from "@/lib/workspace";
+import { getAccountProfile } from "@/lib/account";
 
 const freeTemplates = ["quotation", "work_order", "receipt"];
 const allTemplates = [...freeTemplates, "task_letter", "completion_report", "payment_notice"];
@@ -12,8 +12,8 @@ async function getUserAndPlan() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { response: NextResponse.json({ error: "Silakan masuk kembali." }, { status: 401 }) };
-  const ownerId = await resolveWorkspaceOwnerId(supabase, user.id);
-  const profile = await getWorkspaceProfile(ownerId);
+  const ownerId = user.id;
+  const profile = await getAccountProfile(ownerId);
   const isAdmin = isAdminEmail(user.email);
   const plan = isAdmin ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);
   return { supabase, user, ownerId, plan, isAdmin };

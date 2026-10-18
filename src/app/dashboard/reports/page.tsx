@@ -5,15 +5,15 @@ import { isPlanActive } from "@/lib/plan";
 import { ReportsPanel } from "@/components/dashboard/ReportsPanel";
 import { buttonVariants } from "@/components/ui/button";
 import { isAdminEmail } from "@/lib/admin-auth";
-import { getWorkspaceProfile, resolveWorkspaceOwnerId } from "@/lib/workspace";
+import { getAccountProfile } from "@/lib/account";
 
 export default async function ReportsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const workspaceId = await resolveWorkspaceOwnerId(supabase, user.id);
-  const profile = await getWorkspaceProfile(workspaceId);
+  const accountId = user.id;
+  const profile = await getAccountProfile(accountId);
   const isBusiness = isAdminEmail(user.email) || (profile?.plan === "business" && isPlanActive(profile.plan_expires_at));
 
   if (!isBusiness) {
@@ -27,8 +27,8 @@ export default async function ReportsPage() {
   }
 
   const [{ data: invoiceRows }, { data: clientRows }] = await Promise.all([
-    supabase.from("invoices").select("invoice_number, client_id, issue_date, due_date, status, subtotal, tax, total").eq("user_id", workspaceId).order("created_at", { ascending: false }),
-    supabase.from("clients").select("id, name, email, phone, address").eq("user_id", workspaceId).order("name"),
+    supabase.from("invoices").select("invoice_number, client_id, issue_date, due_date, status, subtotal, tax, total").eq("user_id", accountId).order("created_at", { ascending: false }),
+    supabase.from("clients").select("id, name, email, phone, address").eq("user_id", accountId).order("name"),
   ]);
 
   const clientById = new Map((clientRows || []).map((client) => [client.id, client.name]));

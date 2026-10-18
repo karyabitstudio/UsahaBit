@@ -42,10 +42,9 @@ const plans = [
   {
     name: "Business",
     key: "business",
-    description: "Untuk tim & bisnis berkembang",
+    description: "Untuk usaha yang ingin berkembang",
     features: [
       "Semua fitur Pro",
-      "Multi user (sampai 5 orang)",
       "Laporan & Export Data",
       "Antrean support Business",
     ],

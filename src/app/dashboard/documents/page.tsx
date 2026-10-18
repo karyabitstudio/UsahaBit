@@ -2,13 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { getEffectivePlan } from "@/lib/plan";
 import { DocumentsWorkspace } from "@/components/documents/DocumentsWorkspace";
-import { getWorkspaceProfile, resolveWorkspaceOwnerId } from "@/lib/workspace";
+import { getAccountProfile } from "@/lib/account";
 
 export default async function DocumentsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
-  const profile = await getWorkspaceProfile(workspaceId);
+  const accountId = user!.id;
+  const profile = await getAccountProfile(accountId);
   const canUseAllTemplates = isAdminEmail(user?.email) || getEffectivePlan(profile?.plan, profile?.plan_expires_at || null) !== "free";
 
   return (

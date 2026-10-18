@@ -8,7 +8,6 @@ export const PLAN_LIMITS = {
     allowCustomBranding: false,
     allowNoWatermark: false,
     allowWhatsapp: false,
-    allowMultiUser: false,
     allowCatalog: false,
   },
   pro: {
@@ -18,7 +17,6 @@ export const PLAN_LIMITS = {
     allowCustomBranding: true,
     allowNoWatermark: true,
     allowWhatsapp: true,
-    allowMultiUser: false,
     allowCatalog: true,
   },
   business: {
@@ -28,7 +26,6 @@ export const PLAN_LIMITS = {
     allowCustomBranding: true,
     allowNoWatermark: true,
     allowWhatsapp: true,
-    allowMultiUser: true,
     allowCatalog: true,
   },
 } as const;

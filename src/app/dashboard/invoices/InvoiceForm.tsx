@@ -25,12 +25,12 @@ interface InvoiceItem {
 interface InvoiceFormProps {
   initialData?: any;
   clients: { id: string; name: string }[];
-  workspaceId: string;
+  accountId: string;
   products?: { id: string; name: string; description: string; price: number }[];
   canUseAllTemplates?: boolean;
 }
 
-export function InvoiceForm({ initialData, clients, workspaceId, products = [], canUseAllTemplates = false }: InvoiceFormProps) {
+export function InvoiceForm({ initialData, clients, accountId, products = [], canUseAllTemplates = false }: InvoiceFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const isEdit = !!initialData;
@@ -133,12 +133,12 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
           throw new Error("Batas invoice gratis bulan ini sudah habis. Pilih paket untuk melanjutkan.");
         }
 
-        invoiceNumber = await generateInvoiceNumber(workspaceId);
+        invoiceNumber = await generateInvoiceNumber(accountId);
 
         const { data: newInvoice, error: invError } = await supabase
           .from("invoices")
           .insert({
-            user_id: workspaceId,
+            user_id: accountId,
             client_id: clientId || null,
             invoice_number: invoiceNumber,
             issue_date: issueDate,
@@ -170,7 +170,7 @@ export function InvoiceForm({ initialData, clients, workspaceId, products = [], 
             template: canUseAllTemplates ? template : "classic",
           })
           .eq("id", invoiceId)
-          .eq("user_id", workspaceId);
+          .eq("user_id", accountId);
 
         if (updateError) throw updateError;
 

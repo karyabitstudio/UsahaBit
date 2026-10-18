@@ -3,13 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { getEffectivePlan, getPlanLimits } from "@/lib/plan";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resolveWorkspaceOwnerId } from "@/lib/workspace";
 
 async function getContext() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { response: NextResponse.json({ error: "Silakan masuk kembali." }, { status: 401 }) };
-  const ownerId = await resolveWorkspaceOwnerId(supabase, user.id);
+  const ownerId = user.id;
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("plan, plan_expires_at").eq("id", ownerId).maybeSingle();
   const plan = isAdminEmail(user.email) ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);

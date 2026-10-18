@@ -3,13 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminEmail } from "@/lib/admin-auth";
 import { getEffectivePlan } from "@/lib/plan";
-import { resolveWorkspaceOwnerId } from "@/lib/workspace";
 
 async function context() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { response: NextResponse.json({ error: "Silakan masuk kembali." }, { status: 401 }) };
-  const ownerId = await resolveWorkspaceOwnerId(supabase, user.id);
+  const ownerId = user.id;
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("plan, plan_expires_at").eq("id", ownerId).maybeSingle();
   const plan = isAdminEmail(user.email) ? "business" : getEffectivePlan(profile?.plan, profile?.plan_expires_at || null);
@@ -20,7 +19,7 @@ export async function GET() {
   const result = await context();
   if ("response" in result) return result.response;
   const { data, error } = await result.admin.from("support_tickets").select("id, subject, message, plan, priority, status, admin_reply, created_at, updated_at").eq("user_id", result.ownerId).order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "Riwayat support gagal dimuat. Pastikan migrasi workspace sudah diterapkan." }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Riwayat support gagal dimuat. Pastikan tabel support_tickets tersedia di Supabase." }, { status: 500 });
   return NextResponse.json({ tickets: data || [], plan: result.plan });
 }
 

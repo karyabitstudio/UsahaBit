@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RotateCcw } from "lucide-react";
 
 interface ClientFormProps {
-  workspaceId: string;
+  accountId: string;
   initialData?: {
     id: string;
     name: string;
@@ -21,7 +21,7 @@ interface ClientFormProps {
   };
 }
 
-export function ClientForm({ initialData, workspaceId }: ClientFormProps) {
+export function ClientForm({ initialData, accountId }: ClientFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const isEdit = !!initialData;
@@ -59,7 +59,7 @@ export function ClientForm({ initialData, workspaceId }: ClientFormProps) {
       phone: phone || null,
       address: address || null,
       notes: notes || null,
-      user_id: workspaceId,
+      user_id: accountId,
     };
 
     let result;
@@ -68,7 +68,7 @@ export function ClientForm({ initialData, workspaceId }: ClientFormProps) {
         .from("clients")
         .update(payload)
         .eq("id", initialData.id)
-        .eq("user_id", workspaceId);
+        .eq("user_id", accountId);
     } else {
       result = await supabase.from("clients").insert(payload);
     }

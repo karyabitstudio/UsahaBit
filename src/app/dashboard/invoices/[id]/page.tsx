@@ -10,7 +10,7 @@ import { id as localeId } from "date-fns/locale";
 import { DownloadPdfButton } from "@/components/invoices/DownloadPdfButton";
 import { SendWhatsAppButton } from "@/components/invoices/SendWhatsAppButton";
 import { isAdminEmail } from "@/lib/admin-auth";
-import { resolveWorkspaceOwnerId, getWorkspaceProfile } from "@/lib/workspace";
+import { getAccountProfile } from "@/lib/account";
 
 const statusMap: Record<
   string,
@@ -36,7 +36,7 @@ export default async function InvoiceDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const workspaceId = await resolveWorkspaceOwnerId(supabase, user!.id);
+  const accountId = user!.id;
 
   const { data: invoice } = await supabase
     .from("invoices")
@@ -48,12 +48,12 @@ export default async function InvoiceDetailPage({
     `,
     )
     .eq("id", id)
-    .eq("user_id", workspaceId)
+    .eq("user_id", accountId)
     .single();
 
   if (!invoice) notFound();
 
-  const profile = await getWorkspaceProfile(workspaceId);
+  const profile = await getAccountProfile(accountId);
   const isAdmin = isAdminEmail(user?.email);
 
   const formatCurrency = (value: number) =>

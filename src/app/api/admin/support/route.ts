@@ -16,7 +16,7 @@ export async function GET() {
   if ("response" in auth) return auth.response;
   const admin = createAdminClient();
   const { data, error } = await admin.from("support_tickets").select("id, user_id, subject, message, plan, priority, status, admin_reply, created_at, updated_at").order("created_at", { ascending: false }).limit(200);
-  if (error) return NextResponse.json({ error: "Tiket support gagal dimuat. Pastikan migrasi workspace sudah diterapkan." }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Tiket support gagal dimuat. Pastikan tabel support_tickets tersedia di Supabase." }, { status: 500 });
   const tickets = await Promise.all((data || []).map(async (ticket) => {
     const { data: { user } } = await admin.auth.admin.getUserById(ticket.user_id);
     return { ...ticket, email: user?.email || "(tanpa email)" };

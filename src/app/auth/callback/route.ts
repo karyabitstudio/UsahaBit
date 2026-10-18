@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -34,19 +33,6 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/dashboard?warning=profile`);
         }
 
-        if (data.user.email) {
-          const admin = createAdminClient();
-          const { data: pendingInvite } = await admin
-            .from("workspace_members")
-            .select("id")
-            .ilike("invited_email", data.user.email.toLowerCase())
-            .eq("status", "pending")
-            .limit(1)
-            .maybeSingle();
-          if (pendingInvite) {
-            await admin.from("workspace_members").update({ member_user_id: data.user.id, status: "active" }).eq("id", pendingInvite.id);
-          }
-        }
       }
 
       return NextResponse.redirect(`${origin}${next}`);

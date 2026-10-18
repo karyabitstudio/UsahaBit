@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getEffectivePlan, getPlanLimits } from "@/lib/plan";
 import { isAdminEmail } from "@/lib/admin-auth";
-import { resolveWorkspaceOwnerId, getWorkspaceProfile } from "@/lib/workspace";
+import { getAccountProfile } from "@/lib/account";
 
 export async function checkInvoiceLimit(userId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const workspaceId = user?.id === userId ? await resolveWorkspaceOwnerId(supabase, userId) : userId;
-  const profile = await getWorkspaceProfile(workspaceId);
+  const accountId = userId;
+  const profile = await getAccountProfile(accountId);
 
   const isAdmin = user?.id === userId && isAdminEmail(user.email);
   const effectivePlan = isAdmin
@@ -28,7 +28,7 @@ export async function checkInvoiceLimit(userId: string) {
   const { count } = await supabase
     .from("invoices")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", workspaceId)
+    .eq("user_id", accountId)
     .gte("created_at", startOfMonth.toISOString());
 
   const used = count || 0;

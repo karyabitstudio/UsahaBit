@@ -12,11 +12,6 @@ export function AuthRecoveryRedirect() {
     if (window.location.pathname !== "/auth/reset-password") {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const searchParams = new URLSearchParams(window.location.search);
-      const inviteType = hashParams.get("type") === "invite" || searchParams.get("type") === "invite";
-      if (inviteType && window.location.pathname !== "/auth/accept-invite") {
-        window.location.replace(`/auth/accept-invite${window.location.search}${window.location.hash}`);
-        return;
-      }
       const recoveryType = hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery";
       const code = searchParams.get("code");
 

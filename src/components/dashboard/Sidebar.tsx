@@ -11,7 +11,6 @@ import {
   Settings,
   LogOut,
   ChartNoAxesCombined,
-  UsersRound,
   LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,6 @@ const menuItems = [
   { href: "/dashboard/documents", label: "Surat Resmi", icon: File },
   { href: "/dashboard/products", label: "Produk", icon: Package },
   { href: "/dashboard/reports", label: "Laporan", icon: ChartNoAxesCombined, businessOnly: true },
-  { href: "/dashboard/team", label: "Anggota Tim", icon: UsersRound, businessOnly: true },
   { href: "/dashboard/support", label: "Support", icon: LifeBuoy },
   { href: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
