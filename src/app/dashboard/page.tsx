@@ -7,7 +7,13 @@ import { checkInvoiceLimit } from "@/lib/check-limits";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ warning?: string | string[] }>;
+}) {
+  const query = await searchParams;
+  const profileWarning = query.warning === "profile";
   const supabase = await createClient();
   const {
     data: { user },
@@ -96,6 +102,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {profileWarning && (
+        <p
+          role="status"
+          className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200"
+        >
+          Anda sudah masuk, tetapi profil bisnis belum tersimpan. Atur policy
+          INSERT dan UPDATE pada tabel profiles agar pengguna hanya dapat
+          mengubah profil dengan ID miliknya.
+        </p>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard</h1>

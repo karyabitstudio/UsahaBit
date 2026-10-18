@@ -20,8 +20,13 @@ export function BrandLogo({
         className="rounded-xl object-contain"
       />
       {showName && (
-        <span className="font-brand text-xl font-semibold tracking-tight text-primary">
-          UsahaBit
+        <span className="flex flex-col items-start leading-tight">
+          <span className="font-brand text-xl font-semibold tracking-tight text-primary">
+            UsahaBit
+          </span>
+          <span className="mt-0.5 text-[10px] font-medium tracking-wide text-muted-foreground">
+            By KaryaBit Studio
+          </span>
         </span>
       )}
     </span>

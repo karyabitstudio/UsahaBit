@@ -74,8 +74,9 @@ export default function LoginPage() {
     );
 
     if (profileError) {
-      setError(`Berhasil masuk, tetapi profil belum tersimpan: ${profileError.message}`);
-      setLoading(false);
+      console.error("Unable to save profile after login:", profileError);
+      router.replace("/dashboard?warning=profile");
+      router.refresh();
       return;
     }
 

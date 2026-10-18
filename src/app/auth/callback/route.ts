@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
         if (profileError) {
           console.error("Failed to create profile after auth callback:", profileError);
-          return NextResponse.redirect(`${origin}/login?error=profile`);
+          return NextResponse.redirect(`${origin}/dashboard?warning=profile`);
         }
       }
 

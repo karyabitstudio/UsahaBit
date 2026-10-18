@@ -79,7 +79,7 @@ export default function RegisterPage() {
 
       if (data.user && !data.session) {
         setMessage(
-          "Akun berhasil dibuat. Cek email dan konfirmasi akun terlebih dahulu, lalu masuk untuk menyelesaikan pembuatan profil.",
+          "Akun berhasil dibuat, tetapi konfirmasi email masih aktif. Matikan Confirm email di Supabase Authentication → Sign In / Providers → Email agar pengguna langsung masuk ke dashboard.",
         );
         setLoading(false);
         return;
@@ -93,18 +93,14 @@ export default function RegisterPage() {
           business_name: businessName,
         });
         if (profileError) {
-          throw new Error(
-            `Profil belum tersimpan: ${profileError.message}`,
-          );
+          console.error("Unable to save profile after signup:", profileError);
+          router.replace("/dashboard?warning=profile");
+          router.refresh();
+          return;
         }
       }
 
-      setMessage(
-        "Registrasi berhasil! Cek email untuk konfirmasi (jika diaktifkan).",
-      );
-
-      // Langsung redirect kalau email confirmation dimatikan
-      router.push("/dashboard");
+      router.replace("/dashboard");
       router.refresh();
     } catch (err) {
       const message =
