@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { InvoiceForm } from "@/components/invoices/InvoiceForm";
+import { InvoiceForm } from "../InvoiceForm";
 
 export default async function NewInvoicePage() {
   const supabase = await createClient();

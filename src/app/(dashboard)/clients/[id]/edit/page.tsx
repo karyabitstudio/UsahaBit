@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ClientForm } from "@/components/clients/ClientForm";
+import { ClientForm } from "../../ClientForm";
 
 export default async function EditClientPage({
   params,

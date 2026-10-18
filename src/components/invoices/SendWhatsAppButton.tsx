@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { MessageCircle, Lock } from "lucide-react";
 import Link from "next/link";
 
@@ -14,16 +14,32 @@ export function SendWhatsAppButton({ invoice, client, profile }: Props) {
   const plan = profile?.plan || "free";
   const isAllowed = plan === "pro" || plan === "business";
 
-  // ... (function handleSend tetap sama seperti di atas)
+  const handleSend = () => {
+    const amount = new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(Number(invoice.total) || 0);
+    const message = [
+      `Halo${client?.name ? ` ${client.name}` : ""},`,
+      `Berikut invoice ${invoice.invoice_number} dari ${profile?.business_name || "kami"} sebesar ${amount}.`,
+      "Silakan hubungi kami jika ada pertanyaan. Terima kasih.",
+    ].join("\n\n");
+    const phone = String(client?.phone || "").replace(/\D/g, "");
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   if (!isAllowed) {
     return (
-      <Button variant="outline" asChild>
-        <Link href="/pricing">
-          <Lock className="h-4 w-4 mr-2" />
-          Kirim via WhatsApp (Pro)
-        </Link>
-      </Button>
+      <Link
+        href="/pricing"
+        className={buttonVariants({ variant: "outline" })}
+      >
+        <Lock className="h-4 w-4 mr-2" />
+        Kirim via WhatsApp (Pro)
+      </Link>
     );
   }
 

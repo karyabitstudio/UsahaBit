@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Users, File, TrendingUp, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { checkInvoiceLimit } from "@/lib/check-limits";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -105,17 +105,20 @@ export default async function DashboardPage() {
         {/* Plan Badge */}
         <div className="flex items-center gap-3">
           {isAdmin && (
-            <Button size="sm" variant="outline" asChild>
-              <Link href="/admin">Admin</Link>
-            </Button>
+            <Link
+              href="/admin"
+              className={buttonVariants({ size: "sm", variant: "outline" })}
+            >
+              Admin
+            </Link>
           )}
           <span className="text-sm text-muted-foreground">
             Paket: <strong className="capitalize">{limitInfo.plan}</strong>
           </span>
           {limitInfo.plan === "free" && (
-            <Button size="sm" asChild>
-              <Link href="/pricing">Upgrade</Link>
-            </Button>
+            <Link href="/pricing" className={buttonVariants({ size: "sm" })}>
+              Upgrade
+            </Link>
           )}
         </div>
       </div>
@@ -161,9 +164,12 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Invoice Terbaru</CardTitle>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/invoices">Lihat Semua</Link>
-            </Button>
+            <Link
+              href="/dashboard/invoices"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Lihat Semua
+            </Link>
           </CardHeader>
           <CardContent>
             {recentInvoices && recentInvoices.length > 0 ? (
@@ -211,15 +217,30 @@ export default async function DashboardPage() {
             <CardTitle>Aksi Cepat</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full" asChild>
-              <Link href="/dashboard/invoices/new">+ Buat Invoice</Link>
-            </Button>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/dashboard/clients/new">+ Tambah Client</Link>
-            </Button>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/dashboard/documents/new">+ Buat Surat</Link>
-            </Button>
+            <Link
+              href="/dashboard/invoices/new"
+              className={buttonVariants({ className: "w-full" })}
+            >
+              + Buat Invoice
+            </Link>
+            <Link
+              href="/dashboard/clients/new"
+              className={buttonVariants({
+                variant: "outline",
+                className: "w-full",
+              })}
+            >
+              + Tambah Client
+            </Link>
+            <Link
+              href="/dashboard/documents/new"
+              className={buttonVariants({
+                variant: "outline",
+                className: "w-full",
+              })}
+            >
+              + Buat Surat
+            </Link>
           </CardContent>
         </Card>
       </div>
