@@ -6,6 +6,7 @@ import { MailPlus, RotateCcw, ShieldCheck, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Member = { id: string; invited_email: string; status: "pending" | "active"; created_at: string };
+const planNames: Record<string, string> = { free: "Gratis", pro: "Pro", business: "Business" };
 
 export function TeamManagement() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -13,6 +14,7 @@ export function TeamManagement() {
   const [seatsUsed, setSeatsUsed] = useState(1);
   const [canManage, setCanManage] = useState(false);
   const [isOwner, setIsOwner] = useState(true);
+  const [plan, setPlan] = useState("free");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export function TeamManagement() {
       setSeatsUsed(result.seatsUsed);
       setCanManage(result.canManage);
       setIsOwner(result.isOwner);
+      setPlan(result.plan || "free");
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Data tim gagal dimuat.");
@@ -66,7 +69,7 @@ export function TeamManagement() {
       {loading ? <p className="py-10 text-center text-sm text-muted-foreground">Memuat anggota tim…</p> : !canManage ? <section className="rounded-2xl border bg-card p-6"><h2 className="font-semibold">{isOwner ? "Undang tim sampai lima orang" : "Workspace tim"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{isOwner ? "Fitur multi-user tersedia di Business. Upgrade untuk berbagi workspace dengan anggota tim." : "Kamu bergabung sebagai anggota. Pemilik workspace mengatur undangan dan paket."}</p>{isOwner && <Link href="/pricing" className="mt-4 inline-flex font-semibold text-primary hover:underline">Lihat paket Business</Link>}</section> : <>
         <section className="space-y-4 rounded-2xl border bg-card p-5 sm:p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Kapasitas workspace</h2><p className="text-sm text-muted-foreground">Pemilik dan anggota aktif atau menunggu undangan.</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">{seatsUsed} / 5</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, seatsUsed * 20)}%` }} /></div></section>
         <section className="space-y-4 rounded-2xl border bg-card p-5 sm:p-6"><h2 className="font-semibold">Undang anggota</h2><form onSubmit={invite} className="flex flex-col gap-3 sm:flex-row"><input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="email@perusahaan.com" className="h-10 min-w-0 flex-1 rounded-lg border bg-background px-3 text-sm" /><Button type="submit" disabled={saving || seatsUsed >= 5}><MailPlus className="mr-2 h-4 w-4" />{saving ? "Mengirim…" : "Kirim undangan"}</Button><Button type="button" variant="outline" disabled={saving} onClick={() => { setEmail(""); setError(null); setMessage(null); }}><RotateCcw className="mr-2 h-4 w-4" />Reset</Button></form><p className="text-xs text-muted-foreground">Anggota akan mendapat akses ke data workspace ini. Undangan baru dapat memerlukan SMTP Supabase.</p></section>
-        <section className="space-y-3 rounded-2xl border bg-card p-5 sm:p-6"><h2 className="font-semibold">Anggota ({members.length + 1} dari 5)</h2><article className="flex items-center gap-3 rounded-xl border p-4"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" /></span><div><p className="font-medium">Pemilik workspace</p><p className="text-xs text-muted-foreground">Paket Business</p></div></article>{members.map((member) => <article key={member.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"><div><p className="font-medium">{member.invited_email}</p><p className="text-xs text-muted-foreground">{member.status === "active" ? "Aktif" : "Menunggu undangan"}</p></div><Button type="button" variant="ghost" size="icon" aria-label={`Keluarkan ${member.invited_email}`} onClick={() => void remove(member)}><Trash2 className="h-4 w-4 text-destructive" /></Button></article>)}</section>
+        <section className="space-y-3 rounded-2xl border bg-card p-5 sm:p-6"><h2 className="font-semibold">Anggota ({members.length + 1} dari 5)</h2><article className="flex items-center gap-3 rounded-xl border p-4"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" /></span><div><p className="font-medium">Pemilik workspace</p><p className="text-xs text-muted-foreground">Paket {planNames[plan] || plan}</p></div></article>{members.map((member) => <article key={member.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"><div><p className="font-medium">{member.invited_email}</p><p className="text-xs text-muted-foreground">{member.status === "active" ? "Aktif" : "Menunggu undangan"}</p></div><Button type="button" variant="ghost" size="icon" aria-label={`Keluarkan ${member.invited_email}`} onClick={() => void remove(member)}><Trash2 className="h-4 w-4 text-destructive" /></Button></article>)}</section>
       </>}
     </div>
   );

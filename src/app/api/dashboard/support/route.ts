@@ -19,7 +19,7 @@ async function context() {
 export async function GET() {
   const result = await context();
   if ("response" in result) return result.response;
-  const { data, error } = await result.supabase.from("support_tickets").select("id, subject, message, plan, priority, status, admin_reply, created_at, updated_at").eq("user_id", result.ownerId).order("created_at", { ascending: false });
+  const { data, error } = await result.admin.from("support_tickets").select("id, subject, message, plan, priority, status, admin_reply, created_at, updated_at").eq("user_id", result.ownerId).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Riwayat support gagal dimuat. Pastikan migrasi workspace sudah diterapkan." }, { status: 500 });
   return NextResponse.json({ tickets: data || [], plan: result.plan });
 }
