@@ -1,7 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function resolveWorkspaceOwnerId(supabase: any, userId: string) {
-  const { data } = await supabase
+export async function resolveWorkspaceOwnerId(_supabase: any, userId: string) {
+  // Resolve through the server-only client so workspace lookup is not affected
+  // by a member's own profile or by a stale/missing select policy.
+  const admin = createAdminClient();
+  const { data } = await admin
     .from("workspace_members")
     .select("owner_id")
     .eq("member_user_id", userId)
